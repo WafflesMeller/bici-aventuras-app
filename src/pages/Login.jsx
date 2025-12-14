@@ -3,6 +3,7 @@ import { supabase } from "../supabase/client.js";
 import { Loader2 } from "lucide-react";
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,8 +19,13 @@ export default function Login() {
       password,
     });
 
-    if (error) setError("Credenciales incorrectas.");
-    setLoading(false);
+    if (error) {
+      setError("Credenciales incorrectas.");
+      setLoading(false); // Detenemos carga si hay error
+    } else {
+      // <--- 3. REDIRIGIR SI TODO SALIÓ BIEN
+      navigate("/dashboard"); // O a "/dashboard", "/admin", etc.
+    }
   };
 
   return (
