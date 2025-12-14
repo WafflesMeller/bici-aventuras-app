@@ -4,9 +4,8 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Tus páginas
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard"; // Asumo que tienes una página principal
-import AdminPanel from "./pages/AdminPanel"; // Ejemplo de otra página privada
-
+// import Dashboard from "./pages/Dashboard"; 
+// import AdminPanel from "./pages/AdminPanel"; 
 function App() {
   return (
     <BrowserRouter>
@@ -19,9 +18,9 @@ function App() {
 
           {/* RUTAS PROTEGIDAS (Agrupadas) */}
           <Route element={<ProtectedRoute />}>
-            {/* Aquí van todas las páginas que requieren sesión */}
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/admin" element={<AdminPanel />} />
+            {/* Aquí van todas las páginas que requieren sesión *
+            <Route path="/" element={<Dashboard />} /> */}
+
             {/* Si intentan entrar a cualquier otra, redirigir a dashboard o 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
