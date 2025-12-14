@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../supabase/client.js";
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function Login() {
       setLoading(false); // Detenemos carga si hay error
     } else {
       // <--- 3. REDIRIGIR SI TODO SALIÓ BIEN
-      navigate("/dashboard"); // O a "/dashboard", "/admin", etc.
+      navigate("/inicio"); // O a "/dashboard", "/admin", etc.
     }
   };
 
