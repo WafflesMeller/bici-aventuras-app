@@ -22,50 +22,57 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center px-4">
 
-      {/* Glows verdes */}
-      <div className="absolute w-[500px] h-[500px] glow-green opacity-20 -top-40 -left-20"></div>
-      <div className="absolute w-[500px] h-[500px] glow-green-2 opacity-20 bottom-0 right-0"></div>
+      <div className="w-full max-w-md bg-white/5 p-8 rounded-xl border border-white/10">
 
-      {/* Card glass */}
-      <div className="glass w-[90%] max-w-md p-8 rounded-2xl shadow-xl relative z-10">
+        {/* LOGO */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/logo.jpg"   // ← Reemplaza por tu imagen
+            alt="Logo"
+            className="w-100 h-auto object-contain"
+          />
+        </div>
 
-        <h1 className="text-3xl font-bold text-brand-gray text-center mb-6 tracking-wide">
-          Bici Aventuras Macuto
+        <h1 className="text-center text-2xl font-semibold text-white mb-6">
+          Iniciar Sesión
         </h1>
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
+
           <div>
-            <label className="text-brand-gray text-sm font-medium">Correo</label>
+            <label className="text-white text-sm">Correo</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full mt-1 p-3 rounded-lg bg-white/5 border border-white/15 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ring-brand-green2"
-              placeholder="usuario@example.com"
+              className="input-field w-full mt-1 p-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]"
+              placeholder="correo@example.com"
             />
           </div>
 
           <div>
-            <label className="text-brand-gray text-sm font-medium">Contraseña</label>
+            <label className="text-white text-sm">Contraseña</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-1 p-3 rounded-lg bg-white/5 border border-white/15 text-white placeholder-gray-400 focus:outline-none focus:ring-2 ring-brand-green2"
+              className="input-field w-full mt-1 p-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]"
               placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+          {error && (
+            <p className="text-red-400 text-sm text-center">{error}</p>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg btn-gradient text-black font-bold hover:opacity-90 transition-all flex items-center justify-center"
+            className="btn-primary w-full py-3 rounded-lg text-center hover:opacity-90 transition flex items-center justify-center"
           >
             {loading ? <Loader2 className="animate-spin" /> : "Ingresar"}
           </button>

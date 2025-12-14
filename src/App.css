@@ -1,8 +1,25 @@
 @import "tailwindcss";
 
-@theme {
-  --color-brand-green1: #00ff7f;
-  --color-brand-green2: #1aff66;
-  --color-brand-gray: #bfc0c0;
+/* Tipografía */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+:root {
+  --brand-green: #00ff7f; /* verde del logo */
 }
 
+body {
+  background-color: #000;  /* fondo negro sólido */
+  font-family: "Poppins", sans-serif;
+}
+
+/* Utility para botones primarios */
+@utility btn-primary {
+  background-color: var(--brand-green);
+  color: #000;
+  font-weight: 600;
+}
+
+@utility input-field {
+  background-color: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+}
