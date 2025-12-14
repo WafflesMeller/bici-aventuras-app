@@ -1,25 +1,18 @@
+/* 1. Importar las fuentes desde Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+/* 2. Importar Tailwind */
 @import "tailwindcss";
 
-/* Tipografía */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
-
-:root {
-  --brand-green: #00ff7f; /* verde del logo */
+/* 3. DEFINIR EL TEMA (Colores y Fuentes) */
+@theme {
+  --color-brand-green: #00ff7f; /* Verde del logo */
+  --font-poppins: "Poppins", sans-serif;
 }
 
+/* 4. ESTILOS GLOBALES */
 body {
-  background-color: #000;  /* fondo negro sólido */
-  font-family: "Poppins", sans-serif;
-}
-
-/* Utility para botones primarios */
-@utility btn-primary {
-  background-color: var(--brand-green);
-  color: #000;
-  font-weight: 600;
-}
-
-@utility input-field {
-  background-color: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.12);
+  background-color: #000; /* Fondo negro */
+  font-family: var(--font-poppins);
+  color: white;
 }

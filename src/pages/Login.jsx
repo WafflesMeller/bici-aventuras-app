@@ -30,9 +30,9 @@ export default function Login() {
         {/* LOGO */}
         <div className="flex justify-center mb-6">
           <img
-            src="/logo.jpg"   // ← Reemplaza por tu imagen
+            src="/logo.jpg"
             alt="Logo"
-            className="w-100 h-auto object-contain"
+            className="w-40 sm:w-52 h-auto object-contain"
           />
         </div>
 
@@ -49,7 +49,9 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-field w-full mt-1 p-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]"
+              className="w-full input-field mt-1 p-3 rounded-lg 
+                         text-white placeholder-gray-400 border border-gray-600
+                        bg-white/5 focus:outline-none focus:ring-2 focus:ring-brand-green"
               placeholder="correo@example.com"
             />
           </div>
@@ -61,7 +63,9 @@ export default function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-field w-full mt-1 p-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]"
+              className="w-full input-field mt-1 p-3 rounded-lg 
+                        text-white placeholder-gray-400 border border-gray-600
+                        bg-white/5 focus:outline-none focus:ring-2 focus:ring-brand-green"
               placeholder="••••••••"
             />
           </div>
@@ -73,10 +77,13 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full py-3 rounded-lg text-center hover:opacity-90 transition flex items-center justify-center"
+            className="w-full py-3 rounded-lg text-black font-semibold 
+                       bg-brand-green hover:opacity-90 transition 
+                       flex items-center justify-center"
           >
             {loading ? <Loader2 className="animate-spin" /> : "Ingresar"}
           </button>
+
         </form>
       </div>
     </div>

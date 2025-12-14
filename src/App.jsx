@@ -4,7 +4,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Tus páginas
 import Login from "./pages/Login";
-// import Dashboard from "./pages/Dashboard"; 
+import Dashboard from "./pages/Dashboard"; 
 // import AdminPanel from "./pages/AdminPanel"; 
 function App() {
   return (
@@ -18,8 +18,9 @@ function App() {
 
           {/* RUTAS PROTEGIDAS (Agrupadas) */}
           <Route element={<ProtectedRoute />}>
-            {/* Aquí van todas las páginas que requieren sesión *
-            <Route path="/" element={<Dashboard />} /> */}
+            {/* Aquí van todas las páginas que requieren sesión */}
+
+            <Route path="/inicio" element={<Dashboard />} />
 
             {/* Si intentan entrar a cualquier otra, redirigir a dashboard o 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
