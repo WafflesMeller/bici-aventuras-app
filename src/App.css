@@ -6,13 +6,24 @@
 
 /* 3. DEFINIR EL TEMA (Colores y Fuentes) */
 @theme {
-  --color-brand-green: #00ff7f; /* Verde del logo */
+  --color-primary: #00ff7f; /* Verde del logo */
   --font-poppins: "Poppins", sans-serif;
 }
 
 /* 4. ESTILOS GLOBALES */
 body {
-  background-color: #000; /* Fondo negro */
+  background: url("/fondo-bici-aventuras.png") no-repeat center center;
+  background-size: cover;
+  background-attachment: scroll; /* evita los saltos raros */
   font-family: var(--font-poppins);
-  color: white;
+  color: black;
 }
+
+/* Solo desktop → fondo fijo */
+@media (min-width: 768px) {
+  body {
+    background-attachment: fixed;
+  }
+}
+
+
