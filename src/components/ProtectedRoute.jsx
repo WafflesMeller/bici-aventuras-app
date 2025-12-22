@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
  * Componente de protección de rutas.
  * Verifica si hay un usuario autenticado usando el contexto global.
  */
+export const ProtectedRoute = () => {
 const ProtectedRoute = () => {
   // Extraemos user y loading desde tu AuthContext
   const { user, loading } = useAuth();
@@ -32,6 +33,7 @@ const ProtectedRoute = () => {
   // 3. RUTA AUTORIZADA:
   // Si hay usuario, renderizamos las rutas hijas (Dashboard, Cobro, etc.)
   return <Outlet />;
+  };
 };
 
 export default ProtectedRoute;
