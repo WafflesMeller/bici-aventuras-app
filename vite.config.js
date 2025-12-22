@@ -9,10 +9,14 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({ 
       registerType: 'autoUpdate',
-      // Habilita esto para poder debugear la PWA también en modo desarrollo
       devOptions: {
         enabled: true 
       },
+      // --- AGREGAR ESTE BLOQUE ---
+      workbox: {
+        navigateFallbackDenylist: [/^\/api/]
+      },
+      // ---------------------------
       includeAssets: ['favicon.ico', 'icons/apple-touch-icon.png', 'icons/mask-icon.svg'], 
       manifest: {
         name: 'Biciaventuras Control Panel',
@@ -22,10 +26,8 @@ export default defineConfig({
         background_color: '#000000',
         display: 'standalone',
         orientation: 'portrait',
-        // --- AGREGA ESTAS DOS LÍNEAS ---
         start_url: '/', 
         scope: '/',
-        // ------------------------------
         icons: [
           {
             src: 'icons/icon-192x192.png',
