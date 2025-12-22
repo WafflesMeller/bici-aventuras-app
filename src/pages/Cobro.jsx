@@ -89,7 +89,7 @@ export default function Cobro() {
       form: {
         values: () => ({
           cantidad: [1, []],
-          tiempo: ["8", []],
+          tiempo: ["10", []],
           ult_4_ref: ["", []], // NUEVO CAMPO
         }),
         render: ({ values, onNext, onBack }) => {
