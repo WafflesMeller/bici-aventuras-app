@@ -7,10 +7,28 @@ import { supabase } from '../supabase/client.js';
 
 import Navbar from "../components/Navbar";
 
-
 export default function Cobro() {
-  // Estado para la tasa (puedes setearla manual o vía API)
-  const [tasa, setTasa] = useState(295.50); 
+  // 1. CAMBIO: Estado inicial en null y nuevo estado de carga
+  const [tasa, setTasa] = useState(null);
+  const [loadingTasa, setLoadingTasa] = useState(true);
+
+  // 2. NUEVO: Efecto para obtener la tasa de la API
+  useEffect(() => {
+    const obtenerTasa = async () => {
+      try {
+        const res = await fetch('/api/tasa');
+        const data = await res.json();
+        // Asumiendo que tu API devuelve { tasa: valor }
+        setTasa(data.tasa);
+      } catch (error) {
+        console.error("Error obteniendo tasa:", error);
+        setTasa(295.50); // Valor de respaldo (fallback) por si la API falla
+      } finally {
+        setLoadingTasa(false);
+      }
+    };
+    obtenerTasa();
+  }, []);
 
   const schema = [
     // PASO 1: DATOS DEL CLIENTE
@@ -23,74 +41,66 @@ export default function Cobro() {
           telefono: ["", []],
         }),
         render: ({ values, onNext }) => {
-        const form = useForm({
-          defaultValues: values,
-          resolver: zodResolver(
-            z.object({
-              nombre: z.string().min(1, "Requerido"),
-              apellido: z.string().min(1, "Requerido"),
-              cedula: z.string().min(6, "Cédula muy corta").max(8, "Máximo 8 dígitos"),
-              telefono: z.string().min(10, "Mínimo 10 dígitos").max(11, "Máximo 11 dígitos"),
-            })
-          ),
-        });
-        const submit = form.handleSubmit(onNext);
+          const form = useForm({
+            defaultValues: values,
+            resolver: zodResolver(
+              z.object({
+                nombre: z.string().min(1, "Requerido"),
+                apellido: z.string().min(1, "Requerido"),
+                cedula: z.string().min(6, "Cédula muy corta").max(8, "Máximo 8 dígitos"),
+                telefono: z.string().min(10, "Mínimo 10 dígitos").max(11, "Máximo 11 dígitos"),
+              })
+            ),
+          });
+          const submit = form.handleSubmit(onNext);
 
-        // Función de limpieza común
-        const handleNumericInput = (e) => {
-          e.target.value = e.target.value.replace(/[^0-9]/g, "");
-        };
+          const handleNumericInput = (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+          };
 
-        return (
-          <form onSubmit={submit} className="space-y-5">
-            <h2 className="text-xl font-semibold text-white">Datos del cliente</h2>
-            
-            <input {...form.register("nombre")} placeholder="Nombre" className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary" />
-            
-            <input {...form.register("apellido")} placeholder="Apellido" className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary" />
-            
-            {/* INPUT CÉDULA */}
-            <div className="space-y-1">
-              <input 
-                {...form.register("cedula")} 
-                type="text" 
-                inputMode="numeric"
-                maxLength={8}
-                onInput={handleNumericInput}
-                placeholder="Cédula (Solo números)" 
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-              />
-              {form.formState.errors.cedula && <p className="text-red-400 text-[10px] ml-1">{form.formState.errors.cedula.message}</p>}
-            </div>
-
-            {/* INPUT WHATSAPP */}
-            <div className="space-y-1">
-              <input 
-                {...form.register("telefono")} 
-                type="text" 
-                inputMode="numeric"
-                maxLength={11}
-                onInput={handleNumericInput}
-                placeholder="WhatsApp (Ej: 04121234567)" 
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-              />
-              {form.formState.errors.telefono && <p className="text-red-400 text-[10px] ml-1">{form.formState.errors.telefono.message}</p>}
-            </div>
-
-            <button type="submit" className="w-full py-3 rounded-lg bg-primary text-black font-semibold hover:opacity-90 transition">Siguiente</button>
-          </form>
-        );
-      },
+          return (
+            <form onSubmit={submit} className="space-y-5">
+              <h2 className="text-xl font-semibold text-white">Datos del cliente</h2>
+              <input {...form.register("nombre")} placeholder="Nombre" className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary" />
+              <input {...form.register("apellido")} placeholder="Apellido" className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary" />
+              <div className="space-y-1">
+                <input 
+                  {...form.register("cedula")} 
+                  type="text" 
+                  inputMode="numeric"
+                  maxLength={8}
+                  onInput={handleNumericInput}
+                  placeholder="Cédula (Solo números)" 
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary" 
+                />
+                {form.formState.errors.cedula && <p className="text-red-400 text-[10px] ml-1">{form.formState.errors.cedula.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <input 
+                  {...form.register("telefono")} 
+                  type="text" 
+                  inputMode="numeric"
+                  maxLength={11}
+                  onInput={handleNumericInput}
+                  placeholder="WhatsApp (Ej: 04121234567)" 
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-primary" 
+                />
+                {form.formState.errors.telefono && <p className="text-red-400 text-[10px] ml-1">{form.formState.errors.telefono.message}</p>}
+              </div>
+              <button type="submit" className="w-full py-3 rounded-lg bg-primary text-black font-semibold hover:opacity-90 transition">Siguiente</button>
+            </form>
+          );
+        },
       },
     },
 
-    // PASO 2: DETALLES Y PAGO (Aquí agregamos ult_4_ref)
+    // PASO 2: DETALLES Y PAGO
     {
       form: {
         values: () => ({
           cantidad: [1, []],
           tiempo: ["8", []],
-          ult_4_ref: ["", []], // NUEVO CAMPO
+          ult_4_ref: ["", []],
         }),
         render: ({ values, onNext, onBack }) => {
           const form = useForm({
@@ -104,10 +114,10 @@ export default function Cobro() {
             ),
           });
 
-          // Cálculo en tiempo real para mostrar al usuario
           const cant = form.watch("cantidad");
           const time = form.watch("tiempo");
           const precioUsd = time === "8" ? 2 : 3;
+          // El cálculo ahora usa la tasa de la API
           const totalBs = (cant * precioUsd * tasa).toFixed(2);
 
           const submit = form.handleSubmit(onNext);
@@ -115,7 +125,6 @@ export default function Cobro() {
           return (
             <form onSubmit={submit} className="space-y-5">
               <h2 className="text-xl font-semibold text-white">Detalles del alquiler</h2>
-              
               <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg text-center">
                 <p className="text-sm text-primary">Total a pagar en Bs.</p>
                 <p className="text-3xl font-bold text-white">{totalBs} Bs.</p>
@@ -136,18 +145,14 @@ export default function Cobro() {
               <div className="space-y-2">
                 <label className="text-xs text-primary font-bold uppercase">Últimos 4 dígitos de la referencia</label>
                 <input 
-                {...form.register("ult_4_ref")} 
-                type="text" 
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="Ej: 6365" 
-                autoComplete="off"
-                onInput={(e) => {
-                  // Reemplaza cualquier cosa que NO sea un número con un string vacío
-                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                }}
-                className="w-full px-4 py-3 rounded-lg bg-white/10 border-2 border-primary text-white text-center text-xl tracking-widest focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-              />
+                  {...form.register("ult_4_ref")} 
+                  type="text" 
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="Ej: 6365" 
+                  onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 border-2 border-primary text-white text-center text-xl tracking-widest focus:outline-none" 
+                />
                 {form.formState.errors.ult_4_ref && <p className="text-red-400 text-xs">{form.formState.errors.ult_4_ref.message}</p>}
               </div>
 
@@ -166,14 +171,13 @@ export default function Cobro() {
     },
   ];
 
-  // FUNCIÓN FINAL: ENVIAR A SUPABASE
   const onReturn = useCallback(async (data) => {
     const precioUsd = data.tiempo === "8" ? 2 : 3;
     const montoBs = data.cantidad * precioUsd * tasa;
 
     try {
       const { error } = await supabase
-        .from('ventas-biciaventuras') // Tu tabla de ventas
+        .from('ventas-biciaventuras')
         .insert([{
           cedula_cliente: data.cedula,
           nombre_cliente: `${data.nombre} ${data.apellido}`,
@@ -183,19 +187,27 @@ export default function Cobro() {
           monto_exacto_bs: montoBs,
           tasa_bcv: tasa,
           ult_4_ref: data.ult_4_ref,
-          pagado: false // El Trigger de la DB lo pondrá en true si consigue el match
+          pagado: false 
         }]);
 
       if (error) throw error;
-
       alert("¡Venta registrada! Verificando pago con el banco...");
-      window.location.reload(); // O redirigir a éxito
+      window.location.reload();
 
     } catch (error) {
       console.error("Error guardando venta:", error);
       alert("Error al registrar la venta");
     }
   }, [tasa]);
+
+  // 3. BLOQUEO DE CARGA: Si la tasa aún no llega, mostramos un aviso
+  if (loadingTasa) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-primary animate-pulse font-bold">Obteniendo tasa de cambio...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen text-white bg-black">
