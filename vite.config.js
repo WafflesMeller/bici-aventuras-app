@@ -9,7 +9,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({ 
       registerType: 'autoUpdate',
-      // CORRECCIÓN: Asegúrate de que los assets apunten a la subcarpeta icons si ahí están
+      // Habilita esto para poder debugear la PWA también en modo desarrollo
+      devOptions: {
+        enabled: true 
+      },
       includeAssets: ['favicon.ico', 'icons/apple-touch-icon.png', 'icons/mask-icon.svg'], 
       manifest: {
         name: 'Biciaventuras Control Panel',
@@ -17,30 +20,34 @@ export default defineConfig({
         description: 'Gestión de alquileres y pagos de Biciaventuras',
         theme_color: '#000000',
         background_color: '#000000',
-        display: 'standalone', // Esto hace que se vea como una app sin barra de navegador
+        display: 'standalone',
         orientation: 'portrait',
+        // --- AGREGA ESTAS DOS LÍNEAS ---
+        start_url: '/', 
+        scope: '/',
+        // ------------------------------
         icons: [
-        {
-          src: 'icons/icon-192x192.png', // Cambiado de pwa- a icon-
-          sizes: '192x192',
-          type: 'image/png'
-        },
-        {
-          src: 'icons/icon-512x512.png', // Cambiado de pwa- a icon-
-          sizes: '512x512',
-          type: 'image/png'
-        },
-        {
-          src: 'icons/icon-512x512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'any maskable'
-        }
-      ]
+          {
+            src: 'icons/icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: 'icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
       }
     })
   ],
   server: {
-    host: true // Esto permite que veas la app desde tu celular usando la IP de tu PC
+    host: true 
   }
 })
