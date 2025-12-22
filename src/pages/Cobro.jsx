@@ -107,7 +107,7 @@ export default function Cobro() {
           // Cálculo en tiempo real para mostrar al usuario
           const cant = form.watch("cantidad");
           const time = form.watch("tiempo");
-          const precioUsd = time === "8" ? 2 : 3;
+          const precioUsd = time === "10" ? 2 : 3;
           const totalBs = (cant * precioUsd * tasa).toFixed(2);
 
           const submit = form.handleSubmit(onNext);
@@ -129,8 +129,8 @@ export default function Cobro() {
               </select>
 
               <select {...form.register("tiempo")} className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white">
-                <option value="8" className="text-black">8 minutos – $2</option>
-                <option value="10" className="text-black">10 minutos – $3</option>
+                <option value="10" className="text-black">10 minutos – $2</option>
+                <option value="20" className="text-black">20 minutos – $3</option>
               </select>
 
               <div className="space-y-2">
