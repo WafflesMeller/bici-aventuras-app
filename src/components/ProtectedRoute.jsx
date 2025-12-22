@@ -10,13 +10,14 @@ export const ProtectedRoute = () => {
   console.log("Auth State:", { user, loading });
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-white font-medium animate-pulse">Verificando acceso...</p>
-      </div>
-    );
-  }
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'red', zIndex: 99999 }}>
+      <h1 style={{ color: 'white', textAlign: 'center', marginTop: '50px' }}>
+        DEBUG: VERIFICANDO ACCESO...
+      </h1>
+    </div>
+  );
+}
 
   if (!user) {
     return <Navigate to="/login" replace />;
