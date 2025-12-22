@@ -20,23 +20,23 @@ export default defineConfig({
         display: 'standalone', // Esto hace que se vea como una app sin barra de navegador
         orientation: 'portrait',
         icons: [
-          {
-            src: '/icons/pwa-192x192.png', // Agregamos la barra inicial / para rutas absolutas
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/icons/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: '/icons/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+        {
+          src: 'icons/icon-192x192.png', // Cambiado de pwa- a icon-
+          sizes: '192x192',
+          type: 'image/png'
+        },
+        {
+          src: 'icons/icon-512x512.png', // Cambiado de pwa- a icon-
+          sizes: '512x512',
+          type: 'image/png'
+        },
+        {
+          src: 'icons/icon-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable'
+        }
+      ]
       }
     })
   ],
