@@ -1,4 +1,5 @@
 {
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/icons/(.*)",
@@ -9,7 +10,11 @@
       "destination": "/manifest.webmanifest"
     },
     {
-      "source": "/((?!api|icons|manifest|pwa-).*)",
+      "source": "/registerSW.js",
+      "destination": "/registerSW.js"
+    },
+    {
+      "source": "/((?!icons|api|manifest|registerSW|pwa-|sw.js).*)",
       "destination": "/index.html"
     }
   ]

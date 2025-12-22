@@ -9,7 +9,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({ 
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      // CORRECCIÓN: Asegúrate de que los assets apunten a la subcarpeta icons si ahí están
+      includeAssets: ['favicon.ico', 'icons/apple-touch-icon.png', 'icons/mask-icon.svg'], 
       manifest: {
         name: 'Biciaventuras Control Panel',
         short_name: 'Biciaventuras',
@@ -20,17 +21,17 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
-            src: 'icons/pwa-192x192.png',
+            src: '/icons/pwa-192x192.png', // Agregamos la barra inicial / para rutas absolutas
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'icons/pwa-512x512.png',
+            src: '/icons/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: 'icons/pwa-512x512.png',
+            src: '/icons/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
