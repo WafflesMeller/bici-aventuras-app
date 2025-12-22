@@ -14,20 +14,26 @@ export default function Cobro() {
 
   // 2. OBTENER TASA AL CARGAR
   useEffect(() => {
-    const fetchTasa = async () => {
-      try {
-        const res = await fetch('/api/tasa');
-        const data = await res.json();
-        setTasa(data.tasa);
-      } catch (error) {
-        console.error("Error cargando tasa:", error);
-        setTasa(295.50); // Fallback por si la API falla
-      } finally {
-        setLoading(false);
+  const fetchTasa = async () => {
+    try {
+      // Añadimos un timestamp para obligar al navegador a pedir datos frescos
+      const res = await fetch(`/api/tasa?t=${Date.now()}`); 
+      const data = await res.json();
+      
+      console.log("Datos recibidos de la API:", data); // Mira esto en la consola (F12)
+
+      if (data?.current?.usd) {
+        setTasa(Number(data.current.usd));
       }
-    };
-    fetchTasa();
-  }, []);
+    } catch (err) {
+      console.error("Error en el fetch:", err);
+      setTasa(295.50); // Fallback
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchTasa();
+}, []);
 
   const schema = [
     // PASO 1: DATOS DEL CLIENTE
