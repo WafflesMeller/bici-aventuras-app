@@ -49,9 +49,23 @@ const handleTab = (tab) => {
 
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
+  try {
+    // 1. Cerramos sesión en Supabase
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+
+    // 2. Limpiamos TODO el almacenamiento local manualmente por seguridad
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 3. FORZAR RECARGA (Crucial para PWA)
+    window.location.href = '/login'; 
+    
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error.message);
+    alert('No se pudo cerrar sesión, intenta de nuevo');
+  }
+};
 
   return (
     <LayoutGroup>
