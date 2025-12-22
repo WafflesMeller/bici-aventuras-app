@@ -20,6 +20,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             {/* Aquí van todas las páginas que requieren sesión */}
 
+            <Route path="/" element={<Dashboard />} />
             <Route path="/panel" element={<Dashboard />} />
             <Route path="/cobro" element={<Cobro />} />
 
