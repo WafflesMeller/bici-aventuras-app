@@ -18,13 +18,18 @@ export const AuthProvider = ({ children }) => {
     checkUser();
 
     // 2. Escuchar cambios (Login, Logout, Token expirado)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false); // <--- SEGURIDAD EXTRA
-    });
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      setUser(null);
+      setLoading(false);
+    } else if (session) {
+      setUser(session.user);
+      setLoading(false);
+    }
+  });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  return () => subscription.unsubscribe();
+}, []);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

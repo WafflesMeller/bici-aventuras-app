@@ -10,7 +10,7 @@ import Navbar from "../components/Navbar";
 
 export default function Cobro() {
   // Estado para la tasa (puedes setearla manual o vía API)
-  const [tasa, setTasa] = useState(55.50); 
+  const [tasa, setTasa] = useState(295.50); 
 
   const schema = [
     // PASO 1: DATOS DEL CLIENTE
