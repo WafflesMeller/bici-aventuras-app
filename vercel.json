@@ -1,20 +1,13 @@
 {
   "cleanUrls": true,
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/icons/(.*)",
       "destination": "/icons/$1"
     },
     {
-      "source": "/manifest.webmanifest",
-      "destination": "/manifest.webmanifest"
-    },
-    {
-      "source": "/registerSW.js",
-      "destination": "/registerSW.js"
-    },
-    {
-      "source": "/((?!icons|api|manifest|registerSW|pwa-|sw.js).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
