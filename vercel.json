@@ -1,11 +1,6 @@
 {
   "cleanUrls": true,
-  "framework": "vite",
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
     {
       "source": "/icons/(.*)",
       "destination": "/icons/$1"
@@ -19,7 +14,11 @@
       "destination": "/sw.js"
     },
     {
-      "source": "/(.*)",
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
