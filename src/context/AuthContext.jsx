@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../supabase/client"; // ⚠️ Verifica tu ruta
+import { supabase } from "../supabase/client";
 
 const AuthContext = createContext();
 
@@ -8,35 +8,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Verificar sesión activa al cargar la app
-    const checkSession = async () => {
+    // 1. Verificación inmediata al cargar la App
+    const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-      setLoading(false);
+      setLoading(false); // <--- AQUÍ SE DESBLOQUEA LA PANTALLA
     };
 
-    checkSession();
+    checkUser();
 
-    // 2. Escuchar cambios en tiempo real (Login, Logout, Auto-refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    // 2. Escuchar cambios (Login, Logout, Token expirado)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false); // <--- SEGURIDAD EXTRA
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      {/* Si está cargando la sesión inicial, no mostramos nada para evitar parpadeos */}
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook personalizado para usar el contexto fácilmente
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);
