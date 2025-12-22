@@ -168,7 +168,7 @@ export default function Cobro() {
 
   // FUNCIÓN FINAL: ENVIAR A SUPABASE
   const onReturn = useCallback(async (data) => {
-    const precioUsd = data.tiempo === "8" ? 2 : 3;
+    const precioUsd = data.tiempo === "10" ? 2 : 3;
     const montoBs = data.cantidad * precioUsd * tasa;
 
     try {
