@@ -21,6 +21,7 @@ import {
   User, 
   IdCard
 } from 'lucide-react';
+import { FaWhatsapp } from "react-icons/fa";
 
 import bdvLogo from '/bdv-logo.png';
 import qrBdv from '/qr-bdv.jpeg';
@@ -273,7 +274,7 @@ function Paso1({ onNext, defaultValues }) {
   {/* TELÉFONO */}
   <div className="space-y-1">
     <label className="flex items-center gap-2 text-xs text-white/60 font-semibold">
-      <Phone className="w-4 h-4 text-white/40" />
+      <FaWhatsapp className="w-4 h-4 text-white/40" />
       WhatsApp
     </label>
     <input
