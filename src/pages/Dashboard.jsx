@@ -12,10 +12,7 @@ export default function Dashboard() {
   const [connectionStatus, setConnectionStatus] = useState('connecting'); // Agregado
   const navigate = useNavigate();
   const pedirPermiso = async () => {
-  const pedirPermiso = async () => {
-  if ("Notification" in window) {
-    await Notification.requestPermission();
-  }
+  const permiso = await Notification.requestPermission();
 };
   
 
@@ -62,7 +59,7 @@ useEffect(() => {
         // 2.1. Recargar los datos de la tabla siempre
         fetchDashboardData();
 
-        // 2.2. Lógica de Notificación
+        // 2.2. Lógica de Notificación: Si es una actualización y se marcó como pagado
         if (
           payload.eventType === 'UPDATE' && 
           payload.new.pagado === true && 
