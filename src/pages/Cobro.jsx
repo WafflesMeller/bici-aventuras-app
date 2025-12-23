@@ -511,6 +511,8 @@ function Paso3({ onNext, onBack, defaultValues }) {
 
 // --- PASO 4 ---
 function Paso4({ onSubmit, onBack, defaultValues, tasa }) {
+  const [envioEstado, setEnvioEstado] = useState('idle');
+
   const {
     register,
     handleSubmit,
@@ -527,10 +529,68 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa }) {
   const montoRecibido = watch('monto_recibido') || 0;
   const monedaPago = watch('moneda_pago');
 
+  // Cálculos de monto
   const totalUSD = defaultValues.cantidad * (defaultValues.tiempo === '10' ? 2 : 3);
+  
+  // CORRECCIÓN 2: Monto para la URL (Debe tener punto decimal y sin puntos de mil)
+  const montoParaUrl = (totalUSD * tasa).toFixed(2); 
+  
+  // Monto para mostrar en el mensaje (Este sí puede ser con coma si prefieres)
   const totalBS = (totalUSD * tasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const handleBotConnect = () => alert('🤖 Conectando...');
+  const handleBotConnect = async () => {
+    setEnvioEstado('enviando');
+
+    // 2. Formateo de Nombre
+    const n = defaultValues.nombre.trim();
+    const nombreFormateado = n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+
+    // 3. Formateo de Teléfono
+    let telDestino = defaultValues.telefono.replace(/\D/g, '');
+    if (telDestino.startsWith('0')) {
+      telDestino = '58' + telDestino.substring(1);
+    } else if (/^(412|422|416|426|424|414)/.test(telDestino)) {
+      telDestino = '58' + telDestino;
+    }
+
+    // 4. URL de Pago Móvil con monto técnico (montoParaUrl)
+    const urlPagoMovil = `https://bdvdigital.banvenez.com/pagomovil?id=V28659024&phone=584127227017&bank=0102&description=9dxBliWt4XnVSB0LTqNasQ%3D%3D&amount=${montoParaUrl}`;
+
+    // 5. Mensaje de WhatsApp
+    const mensajeFormateado = 
+      `🚲 *HOLA, ${nombreFormateado.toUpperCase()}!*\n` +
+      `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
+      `Aquí tienes los detalles de tu alquiler en *Biciaventuras*:\n\n` +
+      `🚲 *Bicis:* ${defaultValues.cantidad}\n` +
+      `⏱️ *Tiempo:* ${defaultValues.tiempo} min\n` +
+      `💰 *Monto a pagar:* ${totalBS} Bs.\n\n` +
+      `*╔════════════════════╗*\n` +
+      `* 👉 [ CLICK PARA PAGAR ] 👈       *\n` +
+      `*╚════════════════════╝*\n` +
+      `${urlPagoMovil}\n\n` +
+      `📢 _Una vez realizado el pago, envía el comprobante por este chat para activar tu tiempo._`;
+
+    try {
+      const response = await fetch("https://api-whatsapp-bici-aventuras.onrender.com/enviar-mensaje", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          numero: telDestino, 
+          mensaje: mensajeFormateado 
+        }),
+      });
+
+      if (response.ok) {
+        setEnvioEstado('exito');
+        setTimeout(() => setEnvioEstado('idle'), 3500);
+      } else {
+        setEnvioEstado('error');
+      }
+    } catch (error) {
+      console.error("Error en la conexión:", error);
+      setEnvioEstado('error');
+    }
+  };
 
   let mensajeVuelto = '';
   let faltaDinero = false;
@@ -588,24 +648,20 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa }) {
           <button
             type="button"
             onClick={handleBotConnect}
-            className="
-      w-full
-      flex items-center justify-center gap-2
-      py-3
-      rounded-xl 
-      bg-white/10
-      text-white font-semibold
-      hover:bg-white/20 active:scale-95 transition-all
-    "
+            disabled={envioEstado === 'enviando'} // Evita múltiples clics
+            className=" w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 active:scale-95 transition-all"
           >
-            {/* LOGO */}
-            <div className="p-1">
-              <img src={bdvLogo} alt="Banco de Venezuela" className="w-7 h-7 object-contain" />
-            </div>
-
-            <span className="tracking-wide">Enviar datos BDV</span>
+            {envioEstado === 'enviando' ? (
+              <Loader2 className="animate-spin w-6 h-6" />
+            ) : (
+              <div className="p-1">
+                <img src={bdvLogo} alt="BDV" className="w-7 h-7 object-contain" />
+              </div>
+            )}
+            <span className="tracking-wide">
+              {envioEstado === 'enviando' ? 'Enviando...' : 'Enviar datos BDV'}
+            </span>
           </button>
-
           {/* QR */}
           <QrAccordion src={qrBdv} alt="BDV QR" />
 
