@@ -1,4 +1,21 @@
 export default async function handler(req, res) {
+  // 1. CONFIGURACIÓN CORS (Permisos de acceso)
+  // Permite acceso desde cualquier origen (*)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Permite los métodos GET y OPTIONS
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  // Permite ciertos encabezados
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // 2. MANEJO DE PREFLIGHT (Solicitud OPTIONS)
+  // Los navegadores preguntan primero con OPTIONS si pueden entrar. 
+  // Aquí les respondemos "OK" inmediatamente.
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // --- TU CÓDIGO ORIGINAL SIGUE AQUÍ ---
+
   const API_URL = 'https://api.dolarvzla.com/public/exchange-rate';
 
   try {
@@ -31,12 +48,12 @@ export default async function handler(req, res) {
         eur: 310.00,
         date: fechaHoy
       },
-      previous: { // Datos ficticios para que no rompa si usas esto
+      previous: { 
         usd: 260.00,
         eur: 310.00,
         date: fechaHoy
       },
-      changePercentage: { // En 0 para que no muestre flechas locas
+      changePercentage: { 
         usd: 0,
         eur: 0
       },
