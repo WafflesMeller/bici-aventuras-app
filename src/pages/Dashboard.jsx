@@ -12,13 +12,9 @@ export default function Dashboard() {
   const [connectionStatus, setConnectionStatus] = useState('connecting'); // Agregado
   const navigate = useNavigate();
   const pedirPermiso = async () => {
-  const permiso = await Notification.requestPermission();
-  if (permiso === 'granted') {
-    // Esto es una notificación LOCAL (no requiere internet)
-    new Notification("¡Biciaventuras!", {
-      body: "Las notificaciones están activadas correctamente",
-      icon: "/icons/icon-192x192.png"
-    });
+  const pedirPermiso = async () => {
+  if ("Notification" in window) {
+    await Notification.requestPermission();
   }
 };
   
@@ -66,7 +62,7 @@ useEffect(() => {
         // 2.1. Recargar los datos de la tabla siempre
         fetchDashboardData();
 
-        // 2.2. Lógica de Notificación: Si es una actualización y se marcó como pagado
+        // 2.2. Lógica de Notificación
         if (
           payload.eventType === 'UPDATE' && 
           payload.new.pagado === true && 
