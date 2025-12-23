@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
-import { DollarSign, Bike, ArrowRight, CheckCircle, Clock } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import Navbar from '../components/Navbar';
+import { DollarSign, Bike, ArrowRight, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '../supabase/client.js';
-import { CircularLoading } from "respinner";
+import { CircularLoading } from 'respinner';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const [ventas, setVentas] = useState([]);
   const [stats, setStats] = useState({ totalBs: 0, totalUsd: 0, bicisHoy: 0 });
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  
 
   // 1. Lógica Operativa: Cargar datos reales de Supabase
   const fetchDashboardData = async () => {
@@ -21,15 +25,18 @@ export default function Dashboard() {
 
     if (!error && data) {
       setVentas(data);
-      
-    // 1. Creamos un filtro intermedio
-      const ventasConfirmadas = data.filter(v => v.pagado);
+
+      // 1. Creamos un filtro intermedio
+      const ventasConfirmadas = data.filter((v) => v.pagado);
 
       // 2. Sumamos usando solo ese filtro
       const totalBs = ventasConfirmadas.reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
-      const totalUsd = ventasConfirmadas.reduce((acc, v) => acc + (Number(v.monto_exacto_bs) / Number(v.tasa_bcv || 1)), 0);
+      const totalUsd = ventasConfirmadas.reduce(
+        (acc, v) => acc + Number(v.monto_exacto_bs) / Number(v.tasa_bcv || 1),
+        0
+      );
       const bicisHoy = ventasConfirmadas.reduce((acc, v) => acc + Number(v.cantidad_bicicletas), 0);
-      
+
       setStats({ totalBs, totalUsd, bicisHoy });
     }
     setLoading(false);
@@ -46,21 +53,24 @@ export default function Dashboard() {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  if (loading) return       <div className="min-h-screen flex items-center justify-center text-primary gap-2">
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center text-primary gap-2">
         <CircularLoading color="#00ff7f" size={80} />
-      </div>;
+      </div>
+    );
 
   return (
     <div className="min-h-screen text-white mb-5">
       <Navbar />
 
       <div className="pt-24 px-4 max-w-xl mx-auto">
-        <h1 className="text-2xl font-semibold text-white mb-6">
-          Panel de Control
-        </h1>
+        <h1 className="text-2xl font-semibold text-white mb-6">Panel de Control</h1>
 
         {/* --- TARJETAS SUPERIORES (Estilo Original) --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -77,9 +87,7 @@ export default function Dashboard() {
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between backdrop-blur-sm">
             <div>
               <p className="text-sm text-white/70">Equivalente en USD</p>
-              <p className="text-2xl font-semibold text-white mt-1">
-                {stats.totalUsd.toFixed(2)}
-              </p>
+              <p className="text-2xl font-semibold text-white mt-1">{stats.totalUsd.toFixed(2)}</p>
             </div>
             <DollarSign className="text-primary" size={32} />
           </div>
@@ -111,10 +119,12 @@ export default function Dashboard() {
                 {ventas.map((v) => (
                   <tr key={v.id} className="border-b border-white/5">
                     <td className="py-2">
-                        <div className="flex flex-col">
-                            <span>{v.nombre_cliente}</span>
-                            <span className="text-[10px] text-white/40 uppercase">{v.tiempo_alquiler} • {v.cantidad_bicicletas} bici(s)</span>
-                        </div>
+                      <div className="flex flex-col">
+                        <span>{v.nombre_cliente}</span>
+                        <span className="text-[10px] text-white/40 uppercase">
+                          {v.tiempo_alquiler} • {v.cantidad_bicicletas} bici(s)
+                        </span>
+                      </div>
                     </td>
                     <td className="py-2 font-medium text-primary">Bs. {Number(v.monto_exacto_bs).toFixed(2)}</td>
                     <td className="py-2">
@@ -131,13 +141,15 @@ export default function Dashboard() {
           </div>
 
           <div className="flex justify-center mt-4">
-            <button className="flex items-center gap-2 bg-primary text-black px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition">
+            <button
+              onClick={() => navigate('/ventas')}
+              className="flex items-center gap-2 bg-primary text-black px-4 py-2 rounded-lg font-semibold"
+            >
               Ver todas
-              <ArrowRight size={16} />
+              <ArrowRight size={18} />
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

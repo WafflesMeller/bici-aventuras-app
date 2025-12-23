@@ -6,6 +6,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Cobro from './pages/Cobro';
+import VentasPage from './pages/VentasPage';
+import VentaDetalle from './pages/VentaDetalle';
 // import AdminPanel from "./pages/AdminPanel";
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/panel" element={<Dashboard />} />
             <Route path="/cobro" element={<Cobro />} />
+            <Route path="/ventas" element={<VentasPage />} />
+            <Route path="/ventas/:id" element={<VentaDetalle />} />
 
             {/* Si intentan entrar a cualquier otra, redirigir a dashboard o 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
