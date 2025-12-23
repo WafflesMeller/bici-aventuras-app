@@ -11,7 +11,16 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ totalBs: 0, totalUsd: 0, bicisHoy: 0 });
   const [connectionStatus, setConnectionStatus] = useState('connecting'); // Agregado
   const navigate = useNavigate();
-
+  const pedirPermiso = async () => {
+  const permiso = await Notification.requestPermission();
+  if (permiso === 'granted') {
+    // Esto es una notificación LOCAL (no requiere internet)
+    new Notification("¡Biciaventuras!", {
+      body: "Las notificaciones están activadas correctamente",
+      icon: "/icons/icon-192x192.png"
+    });
+  }
+};
   
 
   // 1. Lógica Operativa: Cargar datos reales de Supabase
@@ -44,28 +53,50 @@ export default function Dashboard() {
   };
 
   // 2. Lógica Operativa: Suscripción Realtime
-  useEffect(() => {
-    fetchDashboardData();
+useEffect(() => {
+  pedirPermiso();
+  fetchDashboardData();
 
-    const channel = supabase
-      .channel('cambios-ventas')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas-biciaventuras' }, () => {
+  const channel = supabase
+    .channel('cambios-ventas')
+    .on(
+      'postgres_changes', 
+      { event: '*', schema: 'public', table: 'ventas-biciaventuras' }, 
+      (payload) => {
+        // 2.1. Recargar los datos de la tabla siempre
         fetchDashboardData();
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setConnectionStatus('live');
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setConnectionStatus('error');
-        } else {
-          setConnectionStatus('connecting');
-        }
-      });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+        // 2.2. Lógica de Notificación: Si es una actualización y se marcó como pagado
+        if (
+          payload.eventType === 'UPDATE' && 
+          payload.new.pagado === true && 
+          payload.old.pagado === false
+        ) {
+          new Notification("💰 ¡Venta Confirmada!", {
+            body: `Cliente: ${payload.new.nombre_cliente}\nMonto: Bs. ${Number(payload.new.monto_exacto_bs).toFixed(2)}`,
+            icon: "/icons/icon-192x192.png"
+          });
+
+          // Sonido de caja registradora
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+          audio.play().catch(e => console.log("El navegador bloqueó el audio hasta que interactúes con la página."));
+        }
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        setConnectionStatus('live');
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        setConnectionStatus('error');
+      } else {
+        setConnectionStatus('connecting');
+      }
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   if (loading)
     return (
