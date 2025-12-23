@@ -34,6 +34,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
   alertBox.innerHTML = `
     <div style="display: flex; flex-direction: column;">
+    <button id="close-pwa-btn" style="background: none; border: none; font-size: 24px; 
+              cursor: pointer; color: black; font-weight: bold; line-height: 1; padding: 0 4px;">&times;</button>
       <span style="font-weight: 800; font-size: 14px;">🚲 BICIAVENTURAS APP</span>
       <span style="font-size: 12px;">Añádela a tu pantalla de inicio</span>
     </div>
@@ -41,8 +43,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
       <button id="install-btn" style="background: black; color: white; border: none; 
               padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 12px;
               cursor: pointer;">INSTALAR</button>
-      <button id="close-pwa-btn" style="background: none; border: none; font-size: 24px; 
-              cursor: pointer; color: black; font-weight: bold; line-height: 1; padding: 0 4px;">&times;</button>
     </div>
   `;
 
