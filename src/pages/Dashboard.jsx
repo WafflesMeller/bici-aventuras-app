@@ -45,7 +45,7 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // 2. Lógica Operativa: Suscripción Realtime
+  /// 2. Lógica Operativa: Suscripción Realtime
 useEffect(() => {
   pedirPermiso();
   fetchDashboardData();
@@ -65,14 +65,24 @@ useEffect(() => {
           payload.new.pagado === true && 
           payload.old.pagado === false
         ) {
-          new Notification("💰 ¡Venta Confirmada!", {
-            body: `Cliente: ${payload.new.nombre_cliente}\nMonto: Bs. ${Number(payload.new.monto_exacto_bs).toFixed(2)}`,
-            icon: "/icons/icon-192x192.png"
-          });
+          
+          // --- MEJORA PARA ANDROID: USAR SERVICE WORKER REGISTRATION ---
+          if (Notification.permission === "granted") {
+            navigator.serviceWorker.ready.then((registration) => {
+              registration.showNotification("💰 ¡Venta Confirmada!", {
+                body: `Cliente: ${payload.new.nombre_cliente}\nMonto: Bs. ${Number(payload.new.monto_exacto_bs).toFixed(2)}`,
+                icon: "/icons/icon-192x192.png",
+                badge: "/icons/icon-192x192.png", // Icono pequeño barra de estado
+                vibrate: [200, 100, 200],
+                tag: 'venta-pagada',
+                renotify: true
+              });
+            });
 
-          // Sonido de caja registradora
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
-          audio.play().catch(e => console.log("El navegador bloqueó el audio hasta que interactúes con la página."));
+            // Sonido de caja registradora
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+            audio.play().catch(() => console.log("Audio en espera de interacción"));
+          }
         }
       }
     )
