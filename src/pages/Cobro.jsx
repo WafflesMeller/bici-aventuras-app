@@ -101,7 +101,7 @@ export default function Cobro() {
   const handleFinalSubmit = async (finalData) => {
     const fullData = { ...formData, ...finalData };
     const precioUsd = fullData.tiempo === '10' ? 2 : 3;
-    const montoBs = (fullData.cantidad * precioUsd * tasa).toFixed(2);
+    const montoBs = (fullData.cantidad * precioUsd * tasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     try {
       const { error } = await supabase.from('ventas-biciaventuras').insert([
@@ -321,7 +321,7 @@ function Paso2({ onNext, onBack, defaultValues, tasa }) {
   const time = watch('tiempo');
   const precioUsd = time === '10' ? 2 : 3;
   const totalUsd = cant * precioUsd;
-  const totalBs = (totalUsd * tasa).toFixed(2);
+  const totalBs = (totalUsd * tasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <form onSubmit={handleSubmit(onNext)} className="space-y-6">
@@ -338,7 +338,7 @@ function Paso2({ onNext, onBack, defaultValues, tasa }) {
             <span className="text-3xl font-bold text-white/90">{totalBs} Bs</span>
           </div>
 
-          <p className="text-sm text-white/40 mt-1">Tasa: {tasa}</p>
+          <p className="text-sm text-white/40 mt-1">Tasa: {tasa.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs</p>
         </div>
         {/* CANTIDAD (CONTADOR) */}
         <div className="space-y-2">
@@ -527,7 +527,7 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa }) {
   const monedaPago = watch('moneda_pago');
 
   const totalUSD = defaultValues.cantidad * (defaultValues.tiempo === '10' ? 2 : 3);
-  const totalBS = (totalUSD * tasa).toFixed(2);
+  const totalBS = (totalUSD * tasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleBotConnect = () => alert('🤖 Conectando...');
 
@@ -538,12 +538,12 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa }) {
     const diff = montoRecibido - target;
     if (diff < -0.01) {
       faltaDinero = true;
-      mensajeVuelto = `Falta: ${Math.abs(diff).toFixed(2)} ${monedaPago}`;
+      mensajeVuelto = `Falta: ${Math.abs(diff).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${monedaPago}`;
     } else {
       mensajeVuelto =
         monedaPago === 'USD'
-          ? `Vuelto: $${diff.toFixed(2)} / ${(diff * tasa).toFixed(2)} Bs`
-          : `Vuelto: ${diff.toFixed(2)} Bs / $${(diff / tasa).toFixed(2)}`;
+          ? `Vuelto: $${diff.toFixed(2)} / ${(diff * tasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs`
+          : `Vuelto: ${diff.toFixed(2)} Bs / $${(diff / tasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
   }
 
