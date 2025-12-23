@@ -18,6 +18,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   const deferredPrompt = e;
 
+  // Si el usuario ya cerró el aviso en esta sesión, no lo mostramos
+  if (sessionStorage.getItem('pwa-banner-closed')) return;
+
   // Creamos el aviso visual
   const alertBox = document.createElement('div');
   alertBox.id = 'pwa-install-banner';
@@ -34,17 +37,28 @@ window.addEventListener('beforeinstallprompt', (e) => {
       <span style="font-weight: 800; font-size: 14px;">🚲 BICIAVENTURAS APP</span>
       <span style="font-size: 12px;">Añádela a tu pantalla de inicio</span>
     </div>
-    <button id="install-btn" style="background: black; color: white; border: none; 
-            padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 12px;
-            cursor: pointer;">INSTALAR</button>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button id="install-btn" style="background: black; color: white; border: none; 
+              padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 12px;
+              cursor: pointer;">INSTALAR</button>
+      <button id="close-pwa-btn" style="background: none; border: none; font-size: 24px; 
+              cursor: pointer; color: black; font-weight: bold; line-height: 1; padding: 0 4px;">&times;</button>
+    </div>
   `;
 
   document.body.appendChild(alertBox);
 
+  // Lógica del botón INSTALAR
   document.getElementById('install-btn').addEventListener('click', async () => {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') alertBox.remove();
+  });
+
+  // LÓGICA DE LA "X" PARA CERRAR
+  document.getElementById('close-pwa-btn').addEventListener('click', () => {
+    alertBox.remove(); // Elimina el elemento del HTML
+    sessionStorage.setItem('pwa-banner-closed', 'true'); // Evita que salga otra vez al recargar
   });
 });
 

@@ -7,8 +7,9 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const [ventas, setVentas] = useState([]);
-  const [stats, setStats] = useState({ totalBs: 0, totalUsd: 0, bicisHoy: 0 });
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalBs: 0, totalUsd: 0, bicisHoy: 0 });
+  const [connectionStatus, setConnectionStatus] = useState('connecting'); // Agregado
   const navigate = useNavigate();
 
   
@@ -51,7 +52,15 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas-biciaventuras' }, () => {
         fetchDashboardData();
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('live');
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setConnectionStatus('error');
+        } else {
+          setConnectionStatus('connecting');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -70,7 +79,23 @@ export default function Dashboard() {
       <Navbar />
 
       <div className="pt-24 px-4 max-w-xl mx-auto">
-        <h1 className="text-2xl font-semibold text-white mb-6">Panel de Control</h1>
+        <div className="flex items-center gap-3 mb-6">
+          <h1 className="text-2xl font-semibold text-white">Panel de Control</h1>
+          
+          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
+            connectionStatus === 'live' 
+              ? 'bg-green-500/10 border-green-500/50 text-green-400' 
+              : connectionStatus === 'connecting'
+              ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-500 animate-pulse'
+              : 'bg-red-500/10 border-red-500/50 text-red-500'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              connectionStatus === 'live' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 
+              connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+            }`} />
+            {connectionStatus === 'live' ? 'Live' : connectionStatus === 'connecting' ? 'Conectando...' : 'Offline'}
+          </div>
+        </div>
 
         {/* --- TARJETAS SUPERIORES (Estilo Original) --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
