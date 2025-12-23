@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import { DollarSign, Bike, ArrowRight, CheckCircle, Clock } from "lucide-react";
 import { supabase } from '../supabase/client.js';
+import { CircularLoading } from "respinner";
 
 export default function Dashboard() {
   const [ventas, setVentas] = useState([]);
@@ -48,7 +49,9 @@ export default function Dashboard() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-white">Cargando datos...</div>;
+  if (loading) return       <div className="min-h-screen flex items-center justify-center text-primary gap-2">
+        <CircularLoading color="#00ff7f" size={80} />
+      </div>;
 
   return (
     <div className="min-h-screen text-white mb-5">

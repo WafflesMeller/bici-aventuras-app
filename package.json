@@ -20,6 +20,7 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.68.0",
     "react-router-dom": "^7.10.1",
+    "respinner": "^5.0.0",
     "supabase": "^2.67.1",
     "tailwindcss": "^4.1.18",
     "zod": "^4.1.13"
