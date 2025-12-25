@@ -71,7 +71,6 @@ useEffect(() => {
             navigator.serviceWorker.ready.then((registration) => {
               registration.showNotification("💰 ¡Venta Confirmada!", {
                 body: `Cliente: ${payload.new.nombre_cliente}\nMonto: Bs. ${Number(payload.new.monto_exacto_bs).toFixed(2)}`,
-                icon: "/icons/icon-192x192.png",
                 vibrate: [200, 100, 200],
                 tag: 'venta-pagada',
                 renotify: true
