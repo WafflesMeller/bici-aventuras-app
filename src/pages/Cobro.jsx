@@ -28,6 +28,9 @@ import qrBdv from '/qr-bdv.jpeg';
 import { OtpReferencia } from '../components/OtpReferencia.jsx';
 import QrAccordion from '../components/QrAccordion.jsx';
 import { CircularLoading } from 'respinner';
+import { useNavigate } from 'react-router-dom'; // Para la navegación
+import { showSuccess, showError } from '../components/Notifications';
+
 
 // --- VALIDACIONES ---
 const paso1Schema = z.object({
@@ -54,6 +57,7 @@ const paso4Schema = z.object({
 
 export default function Cobro() {
   const [step, setStep] = useState(1);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [tasa, setTasa] = useState(60.0);
   const [direction, setDirection] = useState('forward');
@@ -99,34 +103,43 @@ export default function Cobro() {
     setStep((prev) => prev - 1);
   };
 
-  const handleFinalSubmit = async (finalData) => {
-    const fullData = { ...formData, ...finalData };
-    const precioUsd = fullData.tiempo === '10' ? 2 : 3;
-    const montoBs = (fullData.cantidad * precioUsd * tasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const handleFinalSubmit = async (finalData) => {
+  const fullData = { ...formData, ...finalData };
+  const precioUsd = fullData.tiempo === '10' ? 2 : 3;
+  
+  // Calculamos el monto numérico real para Supabase (sin formato de puntos/comas de texto)
+  const montoNumericoBs = fullData.cantidad * precioUsd * tasa;
 
-    try {
-      const { error } = await supabase.from('ventas-biciaventuras').insert([
-        {
-          cedula_cliente: fullData.cedula,
-          nombre_cliente: `${fullData.nombre} ${fullData.apellido}`,
-          telefono_cliente: fullData.telefono,
-          cantidad_bicicletas: fullData.cantidad,
-          tiempo_alquiler: `${fullData.tiempo} min`,
-          monto_exacto_bs: parseFloat(montoBs),
-          tasa_bcv: tasa,
-          ult_4_ref: fullData.ult_4_ref || 'EFECTIVO',
-          pagado: true,
-          metodo_pago: fullData.metodo_pago,
-        },
-      ]);
+  try {
+    const { error } = await supabase.from('ventas-biciaventuras').insert([
+      {
+        cedula_cliente: fullData.cedula,
+        nombre_cliente: `${fullData.nombre} ${fullData.apellido}`,
+        telefono_cliente: fullData.telefono,
+        cantidad_bicicletas: fullData.cantidad,
+        tiempo_alquiler: `${fullData.tiempo} min`,
+        monto_exacto_bs: montoNumericoBs, // Enviamos el número puro
+        tasa_bcv: tasa,
+        ult_4_ref: fullData.ult_4_ref || 'EFECTIVO',
+        pagado: true,
+        metodo_pago: fullData.metodo_pago,
+      },
+    ]);
 
-      if (error) throw error;
-      alert('¡Venta registrada exitosamente!');
-      window.location.reload();
-    } catch (error) {
-      alert('Error: ' + error.message);
-    }
-  };
+    if (error) throw error;
+
+    // 1. Mostramos la notificación bonita
+    showSuccess('¡Venta registrada con éxito!');
+
+    // 2. Redirigimos al Dashboard después de un pequeño delay para que vean la notificación
+    setTimeout(() => {
+      navigate('/'); // O la ruta que sea tu Dashboard
+    }, 1000);
+
+  } catch (error) {
+    showError('Error: ' + error.message);
+  }
+};
 
   if (loading)
     return (

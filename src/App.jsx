@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import Notifications from './components/Notifications';
 
 // Tus páginas
 import Login from './pages/Login';
@@ -14,6 +15,7 @@ function App() {
     <BrowserRouter>
       {/* 1. Envolvemos todo con el AuthProvider */}
       <AuthProvider>
+        <Notifications />
         <Routes>
           {/* RUTA PÚBLICA */}
           <Route path="/login" element={<Login />} />
