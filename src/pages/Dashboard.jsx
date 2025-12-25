@@ -72,7 +72,6 @@ useEffect(() => {
               registration.showNotification("💰 ¡Venta Confirmada!", {
                 body: `Cliente: ${payload.new.nombre_cliente}\nMonto: Bs. ${Number(payload.new.monto_exacto_bs).toFixed(2)}`,
                 icon: "/icons/icon-192x192.png",
-                badge: "/icons/icon-192x192.png", // Icono pequeño barra de estado
                 vibrate: [200, 100, 200],
                 tag: 'venta-pagada',
                 renotify: true
@@ -127,7 +126,7 @@ useEffect(() => {
               connectionStatus === 'live' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 
               connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
             }`} />
-            {connectionStatus === 'live' ? 'Live' : connectionStatus === 'connecting' ? 'Conectando...' : 'Offline'}
+            {connectionStatus === 'live' ? 'conectado' : connectionStatus === 'connecting' ? 'Conectando...' : 'Sin conexión'}
           </div>
         </div>
 
