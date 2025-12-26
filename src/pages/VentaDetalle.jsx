@@ -9,7 +9,10 @@ import {
   User,
   Phone,
   IdCard,
-  Clock
+  Clock,
+  Hash,      // Icono para la referencia
+  CheckCircle, // Icono para estado pagado
+  AlertCircle  // Icono para estado pendiente
 } from "lucide-react";
 import { CircularLoading } from "respinner";
 
@@ -45,7 +48,6 @@ export default function VentaDetalle() {
       <Navbar />
 
       <div className="pt-24 px-4 max-w-xl mx-auto space-y-4">
-
         {/* VOLVER */}
         <button
           onClick={() => navigate(-1)}
@@ -56,7 +58,6 @@ export default function VentaDetalle() {
 
         {/* CARD DETALLE */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-3 animate-slide-in-right">
-
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <User /> {venta.nombre_cliente}
           </h2>
@@ -79,10 +80,32 @@ export default function VentaDetalle() {
             <DollarSign /> Bs. {Number(venta.monto_exacto_bs).toFixed(2)}
           </p>
 
-          <p className="flex items-center gap-2 text-xs text-white/50">
-            <Clock /> {new Date(venta.created_at).toLocaleString("es-VE")}
-          </p>
+          {/* --- BLOQUE DE REFERENCIA Y ESTADO --- */}
+          <div className={`mt-4 p-3 rounded-lg border ${venta.pagado ? 'bg-green-500/10 border-green-500/30' : 'bg-yellow-500/10 border-yellow-500/30'}`}>
+            <p className="text-[10px] uppercase font-bold tracking-widest mb-1 flex items-center gap-2">
+              {venta.pagado ? (
+                <><CheckCircle size={14} className="text-green-400" /> Pago Confirmado</>
+              ) : (
+                <><AlertCircle size={14} className="text-yellow-500 animate-pulse" /> Pendiente de Conciliación</>
+              )}
+            </p>
+            
+            <p className="flex items-center gap-2 text-sm">
+              <Hash size={16} className="text-white/40" />
+              <span className="text-white/60">Referencia:</span>
+              <span className="font-mono font-medium text-white">
+                {venta.referencia_pago || `${venta.ult_4_ref} (Esperando banco...)`}
+              </span>
+            </p>
+          </div>
 
+          <div className="h-px bg-white/10 my-2" />
+
+          <p className="flex items-center gap-2 text-xs text-white/50">
+            <Clock /> 
+            {/* Usando hora de Caracas para consistencia */}
+            {new Date(venta.created_at).toLocaleString("es-VE", { timeZone: "America/Caracas" })}
+          </p>
         </div>
       </div>
     </div>
