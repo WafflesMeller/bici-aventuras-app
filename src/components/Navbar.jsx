@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { supabase } from '../supabase/client.js';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Wallet, Phone, LogOut, LayoutDashboard, Camera, PlusCircle, List } from 'lucide-react';
+import { Wallet, LogOut, LayoutDashboard, Camera, Bike } from 'lucide-react';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ export default function Navbar() {
 useEffect(() => {
   if (location.pathname === "/panel") setActiveTab("panel");
   if (location.pathname === "/cobro") setActiveTab("cobro");
+  if (location.pathname === "/escanear") setActiveTab("escanear");
+  if (location.pathname === "/bicis") setActiveTab("bicis");
 }, [location.pathname]);
 
 
@@ -32,8 +34,8 @@ useEffect(() => {
   const tabs = [
     { key: 'panel', label: 'Panel', icon: <LayoutDashboard size={22} /> },
     { key: 'cobro', label: 'Cobrar', icon: <Wallet size={22} /> },
-    { key: 'contacto', label: 'Contacto', icon: <Phone size={22} /> },
     { key: 'escanear', label: 'Escanear', icon: <Camera size={18} /> },
+    { key: 'bicis', label: 'Bicis', icon: <Bike size={18} /> },
   ];
 
   const toggleMobile = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -48,7 +50,8 @@ useEffect(() => {
     // 3. Navegación centralizada
     if (tab === "panel") navigate("/panel");
     if (tab === "cobro") navigate("/cobro");
-    if (tab === "escanear") navigate("/escanear"); // Ruta para el OCR
+    if (tab === "escanear") navigate("/escanear");
+    if (tab === "bicis") navigate("/bicis");
   };
 
   const handleLogout = async () => {

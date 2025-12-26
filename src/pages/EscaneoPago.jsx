@@ -159,14 +159,13 @@ const parseMontoVzla = (textoCrudo) => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white">
       <Navbar />
       <Toaster position="top-center" />
       <canvas ref={canvasRef} className="hidden" />
       
-      <div className="pt-28 px-4 max-w-md mx-auto space-y-6 pb-10">
-        <div className="flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="p-2 bg-white/5 rounded-full"><ArrowLeft size={20}/></button>
+      <div className="pt-24 px-4 max-w-md mx-auto space-y-6 pb-10">
+        <div className="flex items-center justify-center">
           <div className="text-right">
             <h1 className="text-xl font-black text-primary italic uppercase tracking-tighter">Validar Pago</h1>
             <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Biciaventuras Macuto</p>
@@ -174,7 +173,7 @@ const parseMontoVzla = (textoCrudo) => {
         </div>
 
         {/* ÁREA DE CÁMARA */}
-        <div className="relative aspect-square bg-white/5 border-2 border-dashed border-white/10 rounded-[2.5rem] overflow-hidden flex items-center justify-center">
+        <div className="relative aspect-square bg-white/10 border-2 border-dashed border-white/10 rounded-[2.5rem] overflow-hidden flex items-center justify-center">
           {!preview ? (
             <label className="flex flex-col items-center gap-2 cursor-pointer">
               <Camera size={48} className="text-primary animate-pulse" />
@@ -195,14 +194,14 @@ const parseMontoVzla = (textoCrudo) => {
         {/* FORMULARIO EDITABLE */}
         <div className="space-y-4 animate-slide-in-up">
 
-          <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
+          <div className="bg-white/10 p-4 rounded-3xl border border-white/10">
             <div className="flex items-center gap-2 mb-1 text-primary/60">
                 <Hash size={14} /><label className="text-[10px] font-bold uppercase tracking-widest">Referencia / Operación</label>
             </div>
             <input value={data.referencia} onChange={(e) => setData({...data, referencia: e.target.value})} className="w-full bg-transparent text-2xl font-black outline-none focus:text-primary transition-colors" />
           </div>
 
-          <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
+          <div className="bg-white/10 p-4 rounded-3xl border border-white/10">
             <div className="flex items-center gap-2 mb-1 text-primary/60">
                 <DollarSign size={14} /><label className="text-[10px] font-bold uppercase tracking-widest">Monto Bolívares</label>
             </div>
