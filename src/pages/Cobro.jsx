@@ -55,8 +55,11 @@ const paso4Schema = z.object({
   moneda_pago: z.string().optional(),
 });
 
+
+
 export default function Cobro() {
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [tasa, setTasa] = useState(60.0);
@@ -104,42 +107,45 @@ export default function Cobro() {
   };
 
 const handleFinalSubmit = async (finalData) => {
-  const fullData = { ...formData, ...finalData };
-  const precioUsd = fullData.tiempo === '10' ? 2 : 3;
-  
-  // Calculamos el monto numérico real para Supabase (sin formato de puntos/comas de texto)
-  const montoNumericoBs = fullData.cantidad * precioUsd * tasa;
+    // 1. Si ya se está enviando, no hacer nada
+    if (isSubmitting) return; 
 
-  try {
-    const { error } = await supabase.from('ventas-biciaventuras').insert([
-      {
-        cedula_cliente: fullData.cedula,
-        nombre_cliente: `${fullData.nombre} ${fullData.apellido}`,
-        telefono_cliente: fullData.telefono,
-        cantidad_bicicletas: fullData.cantidad,
-        tiempo_alquiler: `${fullData.tiempo} min`,
-        monto_exacto_bs: montoNumericoBs, // Enviamos el número puro
-        tasa_bcv: tasa,
-        ult_4_ref: fullData.ult_4_ref || 'EFECTIVO',
-        pagado: true,
-        metodo_pago: fullData.metodo_pago,
-      },
-    ]);
+    // 2. Activar el bloqueo
+    setIsSubmitting(true); 
 
-    if (error) throw error;
+    const fullData = { ...formData, ...finalData };
+    const precioUsd = fullData.tiempo === '10' ? 2 : 3;
+    const montoNumericoBs = fullData.cantidad * precioUsd * tasa;
 
-    // 1. Mostramos la notificación bonita
-    showSuccess('¡Venta registrada con éxito!');
+    try {
+      const { error } = await supabase.from('ventas-biciaventuras').insert([
+        {
+          cedula_cliente: fullData.cedula,
+          nombre_cliente: `${fullData.nombre} ${fullData.apellido}`,
+          telefono_cliente: fullData.telefono,
+          cantidad_bicicletas: fullData.cantidad,
+          tiempo_alquiler: `${fullData.tiempo} min`,
+          monto_exacto_bs: montoNumericoBs,
+          tasa_bcv: tasa,
+          ult_4_ref: fullData.ult_4_ref || 'EFECTIVO',
+          pagado: true,
+          metodo_pago: fullData.metodo_pago,
+        },
+      ]);
 
-    // 2. Redirigimos al Dashboard después de un pequeño delay para que vean la notificación
-    setTimeout(() => {
-      navigate('/'); // O la ruta que sea tu Dashboard
-    }, 1000);
+      if (error) throw error;
 
-  } catch (error) {
-    showError('Error: ' + error.message);
-  }
-};
+      showSuccess('¡Venta registrada con éxito!');
+      setTimeout(() => {
+        navigate('/'); 
+      }, 1000);
+
+    } catch (error) {
+      showError('Error: ' + error.message);
+      // 3. Solo si hay error, desbloqueamos para permitir reintento
+      setIsSubmitting(false); 
+    }
+  };
 
   if (loading)
     return (
@@ -181,7 +187,7 @@ const handleFinalSubmit = async (finalData) => {
             {step === 2 && <Paso2 onNext={handleNextStep} onBack={handleBack} defaultValues={formData} tasa={tasa} />}
             {step === 3 && <Paso3 onNext={handleNextStep} onBack={handleBack} defaultValues={formData} />}
             {step === 4 && (
-              <Paso4 onSubmit={handleFinalSubmit} onBack={handleBack} defaultValues={formData} tasa={tasa} />
+              <Paso4 onSubmit={handleFinalSubmit} onBack={handleBack} defaultValues={formData} tasa={tasa} isSubmitting={isSubmitting}/>
             )}
           </div>
         </div>
@@ -523,7 +529,7 @@ function Paso3({ onNext, onBack, defaultValues }) {
 }
 
 // --- PASO 4 ---
-function Paso4({ onSubmit, onBack, defaultValues, tasa }) {
+function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) { 
   const [envioEstado, setEnvioEstado] = useState('idle');
 
   const {
@@ -799,16 +805,28 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa }) {
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 py-3 rounded-lg bg-white/10 text-white flex items-center justify-center gap-2 hover:bg-white/20 active:scale-95 transition-all"
+          disabled={isSubmitting} // Bloquea el botón de volver si se está enviando
+          className="flex-1 py-3 rounded-lg bg-white/10 text-white flex items-center justify-center gap-2 hover:bg-white/20 active:scale-95 transition-all disabled:opacity-50"
         >
           <ArrowLeft size={18} /> Volver
         </button>
+        
         <button
           type="submit"
-          disabled={metodo === 'efectivo' && faltaDinero}
-          className="flex-1 py-3 rounded-lg bg-primary text-black font-semibold disabled:opacity-50 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2  transition-all"
+          // Se bloquea si se está enviando O si falta dinero en efectivo
+          disabled={isSubmitting || (metodo === 'efectivo' && faltaDinero)}
+          className="flex-1 py-3 rounded-lg bg-primary text-black font-semibold disabled:opacity-50 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2 transition-all"
         >
-          Finalizar <Check size={18} />
+          {isSubmitting ? (
+            <>
+              Generando... 
+              <Loader2 className="animate-spin" size={18} />
+            </>
+          ) : (
+            <>
+              Finalizar <Check size={18} />
+            </>
+          )}
         </button>
       </div>
     </form>
