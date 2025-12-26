@@ -5,6 +5,7 @@ import { Camera, RefreshCw, X, ArrowLeft, Check, Hash, DollarSign, User } from '
 import Navbar from '../components/Navbar';
 import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { showSuccess, showError } from "../components/Notifications"; // Ajusta la ruta si es necesario
 
 export default function EscaneoPago() {
   const navigate = useNavigate();
@@ -163,6 +164,23 @@ const parseMontoVzla = (textoCrudo) => {
       <Navbar />
       <Toaster position="top-center" />
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* --- BOTONES DE PRUEBA (BORRAR LUEGO) --- */}
+      <div className="fixed bottom-20 right-4 flex flex-col gap-3 z-50">
+        <button
+          onClick={() => showSuccess("¡Bici alquilada correctamente!")}
+          className="px-4 py-3 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-xs font-bold uppercase tracking-widest backdrop-blur-md transition-all active:scale-95 shadow-lg"
+        >
+          Probar Éxito
+        </button>
+        
+        <button
+          onClick={() => showError("Error: No se pudo conectar")}
+          className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold uppercase tracking-widest backdrop-blur-md transition-all active:scale-95 shadow-lg"
+        >
+          Probar Error
+        </button>
+      </div>
       
       <div className="pt-24 px-4 max-w-md mx-auto space-y-6 pb-10">
         <div className="flex items-center justify-center">

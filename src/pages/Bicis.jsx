@@ -28,7 +28,7 @@ const playCasioBurst = () => {
     osc.type = 'square'; // Sonido retro
     osc.frequency.setValueAtTime(6500, startTime); // Frecuencia aguda (alarma)
     
-    gain.gain.setValueAtTime(0.9, startTime);
+    gain.gain.setValueAtTime(1, startTime);
     gain.gain.exponentialRampToValueAtTime(0.00001, startTime + 0.1);
 
     osc.connect(gain);

@@ -85,6 +85,7 @@ useEffect(() => {
           <div className="flex items-center">
             <img src="/logo.webp" alt="logo" className="w-40 h-20 object-contain " />
           </div>
+          
 
           {/* DESKTOP MENU */}
           <div className="hidden md:flex items-center gap-6 relative">

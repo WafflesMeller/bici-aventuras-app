@@ -118,3 +118,36 @@ body {
 .origin-left {
   transform-origin: left;
 }
+
+
+/* --- ANIMACIONES TOAST (Manuales para Tailwind v4) --- */
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem) scale(0.95); /* Viene de arriba y pequeño */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1); /* Posición normal */
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-1rem) scale(0.95); /* Se va para arriba y encoge */
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; /* Efecto elástico suave */
+}
+
+.animate-toast-out {
+  animation: toast-out 0.2s ease-in forwards;
+}
