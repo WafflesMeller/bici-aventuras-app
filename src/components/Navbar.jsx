@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { supabase } from '../supabase/client.js';
 import { useNavigate, useLocation } from 'react-router-dom';
-
-// Íconos
-import { Home, Wallet, Phone, LogOut, LayoutDashboard } from 'lucide-react';
+import { Home, Wallet, Phone, LogOut, LayoutDashboard, Camera, PlusCircle, List } from 'lucide-react';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -35,18 +33,23 @@ useEffect(() => {
     { key: 'panel', label: 'Panel', icon: <LayoutDashboard size={22} /> },
     { key: 'cobro', label: 'Cobrar', icon: <Wallet size={22} /> },
     { key: 'contacto', label: 'Contacto', icon: <Phone size={22} /> },
+    { key: 'escanear', label: 'Escanear', icon: <Camera size={18} /> },
   ];
 
   const toggleMobile = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-const handleTab = (tab) => {
-  setActiveTab(tab);
-  setIsMobileMenuOpen(false);
+  const handleTab = (tab) => {
+    // 1. Actualizamos el estado visual (para la barrita de Framer Motion)
+    setActiveTab(tab); 
+    
+    // 2. Cerramos el menú móvil (siempre, sin importar qué pestaña sea)
+    setIsMobileMenuOpen(false); 
 
-  if (tab === "panel") navigate("/panel");
-  if (tab === "cobro") navigate("/cobro");
-};
-
+    // 3. Navegación centralizada
+    if (tab === "panel") navigate("/panel");
+    if (tab === "cobro") navigate("/cobro");
+    if (tab === "escanear") navigate("/escanear"); // Ruta para el OCR
+  };
 
   const handleLogout = async () => {
   try {

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Notifications from './components/Notifications';
+import EscaneoPago from './pages/EscaneoPago';
 
 // Tus páginas
 import Login from './pages/Login';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/cobro" element={<Cobro />} />
             <Route path="/ventas" element={<VentasPage />} />
             <Route path="/ventas/:id" element={<VentaDetalle />} />
+            <Route path="/escanear" element={<EscaneoPago />} />
 
             {/* Si intentan entrar a cualquier otra, redirigir a dashboard o 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
