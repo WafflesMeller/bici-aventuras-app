@@ -10,26 +10,57 @@
   --font-poppins: "Poppins", sans-serif;
 }
 
-/* 4. ESTILOS GLOBALES */
 body {
-  background: url("/fondo-bici-aventuras.png") no-repeat center center;
+  /*
+    1. COLOR DE FONDO NEGRO (Fallback):
+    Se coloca 'black' antes de la url. Si la imagen falla al cargar,
+    o mientras se está descargando, se verá este color de fondo.
+  */
+  background-color: black;
+
+  /*
+    2. IMAGEN MÓVIL POR DEFECTO:
+    Definimos aquí la imagen que se verá en pantallas pequeñas (móviles).
+    Reemplaza "/fondo-movil.webp" por la ruta real de tu imagen móvil.
+  */
+  background-image: url("/fondo-bici-aventuras-movil.webp");
+
+  /* Configuración común para ambas imágenes */
+  background-repeat: no-repeat;
+  background-position: center center;
   background-size: cover;
-  background-attachment: scroll; /* evita los saltos raros */
+  background-attachment: scroll; /* Scroll en móvil para evitar saltos */
+
   font-family: var(--font-poppins);
+  /*
+   OJO AQUÍ: Tienes 'color: black'. Si el fondo si no carga es negro,
+   el texto negro no se verá. Quizás quieras cambiar esto a 'white'
+   o asegurarte de que tus componentes manejen su propio color de texto.
+  */
   color: black;
 }
 
-/* Solo desktop → fondo fijo */
+/* =========================================
+   MEDIA QUERY PARA ESCRITORIO (Desktop)
+   Se aplica solo si la pantalla mide más de 768px.
+========================================= */
 @media (min-width: 768px) {
   body {
+    /*
+      3. SOBREESCRIBIR IMAGEN:
+      Aquí le decimos: si es pantalla grande, olvida la imagen móvil
+      y usa la imagen original de escritorio.
+    */
+    background-image: url("/fondo-bici-aventuras.webp");
+
+    /* Fondo fijo solo en desktop (se ve mejor) */
     background-attachment: fixed;
   }
 }
-/* Asegura que el contenedor de React ocupe toda la pantalla real */
+
 #root {
   color-scheme: dark;
 }
-
 
 
 @keyframes slideInRight {
@@ -48,4 +79,20 @@ body {
 
 .animate-slide-in-left {
   animation: slideInLeft 0.80s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animación de pop para el contador*/
+@keyframes pop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop {
+  animation: pop 0.25s ease-out;
 }

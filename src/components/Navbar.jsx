@@ -74,13 +74,13 @@ useEffect(() => {
     <LayoutGroup>
       {/* NAVBAR SUPERIOR */}
       <nav
-        className={`w-full backdrop-blur-xs fixed top-0 left-0 z-50
+        className={`w-full backdrop-blur-xs fixed top-0 left-0 z-100
       ${isMobileMenuOpen ? '' : 'bg-white/5 transition-colors duration-500'}`}
       >
         <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
           {/* LOGO */}
           <div className="flex items-center">
-            <img src="/logo.png" alt="logo" className="w-40 h-20 object-contain " />
+            <img src="/logo.webp" alt="logo" className="w-40 h-20 object-contain " />
           </div>
 
           {/* DESKTOP MENU */}
@@ -157,7 +157,7 @@ useEffect(() => {
       <div
         className={`
     md:hidden fixed inset-0 bg-white/5 backdrop-blur-md
-    z-40 flex flex-col items-center justify-between
+    z-99 flex flex-col items-center justify-between
     transition-all duration-300
     ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
   `}

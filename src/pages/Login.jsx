@@ -34,7 +34,7 @@ export default function Login() {
       <div className="w-full max-w-md bg-white/5 backdrop-blur-md p-8 rounded-xl border border-white/10">
         {/* LOGO */}
         <div className="flex justify-center mb-6">
-          <img src="/logo.png" alt="Logo" className="w-80 h-auto object-contain" />
+          <img src="/logo.webp" alt="Logo" className="w-80 h-auto object-contain" />
         </div>
 
         <h1 className="text-center text-2xl font-semibold text-white mb-6">Iniciar Sesión</h1>

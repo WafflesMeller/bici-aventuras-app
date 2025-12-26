@@ -12,6 +12,7 @@
   "dependencies": {
     "@formity/react": "^1.0.0",
     "@hookform/resolvers": "^5.2.2",
+    "@number-flow/react": "^0.5.10",
     "@supabase/supabase-js": "^2.87.1",
     "@tailwindcss/vite": "^4.1.18",
     "framer-motion": "^12.23.26",
