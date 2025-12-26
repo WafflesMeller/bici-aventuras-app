@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import { ArrowLeft, CheckCircle, Clock, Bike, User } from "lucide-react";
+import { ArrowLeft, CheckCircle, Clock, Bike, User, Hash } from "lucide-react"; // Añadido Hash
 import { supabase } from "../supabase/client";
 import { CircularLoading } from "respinner";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +37,6 @@ export default function VentasPage() {
       <Navbar />
 
       <div className="pt-24 px-4 max-w-xl mx-auto">
-
         {/* HEADER */}
         <div className="flex items-center gap-3 mb-6 animate-slide-in-left">
           <button
@@ -59,7 +58,7 @@ export default function VentasPage() {
               className="
                 bg-white/5 border border-white/10 rounded-xl p-4
                 flex justify-between items-center
-                cursor-pointer
+                cursor-pointer hover:bg-white/10 transition-all
                 animate-slide-in-right
               "
             >
@@ -74,8 +73,16 @@ export default function VentasPage() {
                   {v.cantidad_bicicletas} bici(s) • {v.tiempo_alquiler}
                 </span>
 
-                <span className="text-xs text-white/40 mt-1">
-                  {new Date(v.created_at).toLocaleString("es-VE")}
+                {/* --- CAMPO DE REFERENCIA / EFECTIVO --- */}
+                <span className="text-[10px] font-bold mt-1.5 flex items-center gap-1 uppercase tracking-wider">
+                  <Hash size={12} className="text-primary" />
+                  <span className={v.ult_4_ref === "EFECTIVO" ? "text-green-400" : "text-white/60"}>
+                    {v.ult_4_ref === "EFECTIVO" ? "Efectivo" : `Ref: ${v.ult_4_ref}`}
+                  </span>
+                </span>
+
+                <span className="text-[10px] text-white/30 mt-1">
+                  {new Date(v.created_at).toLocaleString("es-VE", { timeZone: "America/Caracas" })}
                 </span>
               </div>
 
@@ -93,7 +100,6 @@ export default function VentasPage() {
             </div>
           ))}
         </div>
-
       </div>
     </div>
   );
