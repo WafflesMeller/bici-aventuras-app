@@ -18,7 +18,9 @@ export default function Dashboard() {
 
   // 1. Lógica Operativa: Cargar datos reales de Supabase
   const fetchDashboardData = async () => {
-    const today = `${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Caracas' })}T00:00:00-04:00`;
+    const now = new Date();
+      const adjusted = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+      const today = `${adjusted.toLocaleDateString('en-CA', { timeZone: 'America/Caracas' })}T06:00:00-04:00`;
 
     const { data, error } = await supabase
       .from('ventas-biciaventuras')
