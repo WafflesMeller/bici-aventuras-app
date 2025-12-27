@@ -21,30 +21,55 @@ const playCasioBurst = () => {
   const ctx = new AudioContext();
   const now = ctx.currentTime;
 
-  const playBeep = (startTime) => {
+  // 1. Definimos cómo suena UN solo Bip
+  const playSingleBeep = (time) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
 
-    osc.type = 'square'; // Sonido retro
-    osc.frequency.setValueAtTime(6500, startTime); // Frecuencia aguda (alarma)
-    
-    gain.gain.setValueAtTime(1, startTime);
-    gain.gain.exponentialRampToValueAtTime(0.00001, startTime + 0.1);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(2800, time);
+    filter.type = "highpass";
+    filter.frequency.value = 1000;
 
-    osc.connect(gain);
+    // Envolvente de volumen (Punch)
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(2.0, time + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.5, time + 0.05);
+
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(ctx.destination);
 
-    osc.start(startTime);
-    osc.stop(startTime + 0.1);
+    osc.start(time);
+    osc.stop(time + 0.05);
   };
 
-  // Secuencia rápida de 4 pitidos
-  playBeep(now);
-  playBeep(now + 0.12);
-  playBeep(now + 0.24);
-  playBeep(now + 0.36);
-};
+  // 2. Definimos un GRUPO de 4 bips (La ráfaga "trrr")
+  const playBurst = (startTime) => {
+    const gap = 0.08; // Velocidad entre bips dentro del grupo
+    playSingleBeep(startTime);
+    playSingleBeep(startTime + gap);
+    playSingleBeep(startTime + gap * 2);
+    playSingleBeep(startTime + gap * 3);
+    
+    // Retornamos cuándo termina este grupo para calcular el siguiente
+    return startTime + (gap * 3) + 0.05; 
+  };
 
+  // 3. SECUENCIA FINAL: Repetimos los grupos
+  // Ajusta esta variable para el "vacio" que mencionas
+  const pauseBetweenGroups = 0.15; // 150ms de silencio entre ráfagas
+
+  // Primer grupo
+  let nextStart = playBurst(now);
+
+  // Segundo grupo (suena casi inmediato después del primero)
+  nextStart = playBurst(nextStart + pauseBetweenGroups);
+  
+  // Tercer grupo (opcional, si quieres más insistencia)
+  // playBurst(nextStart + pauseBetweenGroups);
+};
 // --- COMPONENTE MODAL (Sin cambios) ---
 const ModalSeleccionCliente = ({ isOpen, onClose, onConfirm, bikeName }) => {
   const [ventasDisponibles, setVentasDisponibles] = useState([]);
