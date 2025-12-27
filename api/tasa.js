@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   // --- TU CÓDIGO ORIGINAL SIGUE AQUÍ ---
 
-  const API_URL = 'https://api.dolarvzla.com/public/exchange-rate';
+  const API_URL = 'https://api.dolarvzla.com/public/excange-rate';
 
   try {
     const response = await fetch(API_URL, {
@@ -44,12 +44,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       current: {
-        usd: 295.00,  // Tasa manual de emergencia
+        usd: 291.35,  // Tasa manual de emergencia
         eur: 310.00,
         date: fechaHoy
       },
       previous: { 
-        usd: 260.00,
+        usd: 291.35,
         eur: 310.00,
         date: fechaHoy
       },
