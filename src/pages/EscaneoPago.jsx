@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../supabase/client';
-import { Camera, RefreshCw, X, ArrowLeft, Check, Hash, DollarSign, User } from 'lucide-react';
+import { Camera, RefreshCw, X, ArrowLeft, Check, Hash, DollarSign, User, Loader2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { showSuccess, showError } from "../components/Notifications"; // Ajusta la ruta si es necesario
+import { FaCircleCheck } from 'react-icons/fa6';
 
 export default function EscaneoPago() {
   const navigate = useNavigate();
@@ -151,7 +151,7 @@ const parseMontoVzla = (textoCrudo) => {
         }]);
 
       if (error) throw error;
-      toast.success("¡Pago registrado!");
+      showSuccess("¡Pago registrado!");
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
       toast.error(err.message);
@@ -162,25 +162,6 @@ const parseMontoVzla = (textoCrudo) => {
   return (
     <div className="min-h-screen text-white">
       <Navbar />
-      <Toaster position="top-center" />
-      <canvas ref={canvasRef} className="hidden" />
-
-      {/* --- BOTONES DE PRUEBA (BORRAR LUEGO) --- */}
-      <div className="fixed bottom-20 right-4 flex flex-col gap-3 z-50">
-        <button
-          onClick={() => showSuccess("¡Bici alquilada correctamente!")}
-          className="px-4 py-3 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-xs font-bold uppercase tracking-widest backdrop-blur-md transition-all active:scale-95 shadow-lg"
-        >
-          Probar Éxito
-        </button>
-        
-        <button
-          onClick={() => showError("Error: No se pudo conectar")}
-          className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold uppercase tracking-widest backdrop-blur-md transition-all active:scale-95 shadow-lg"
-        >
-          Probar Error
-        </button>
-      </div>
       
       <div className="pt-24 px-4 max-w-md mx-auto space-y-6 pb-10">
         <div className="flex items-center justify-center">
@@ -229,9 +210,16 @@ const parseMontoVzla = (textoCrudo) => {
           <button 
             onClick={guardarPagoCompleto} 
             disabled={isSaving || loading}
-            className="w-full py-5 bg-primary text-black font-black rounded-[1.5rem] shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01] active:scale-95 transition-all"
+            className="w-full py-5 bg-primary text-black font-black rounded-3xl flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01] active:scale-95 transition-all uppercase"
           >
-            {isSaving ? "GUARDANDO..." : <><Check size={24}/> FINALIZAR Y VINCULAR</>}
+            {isSaving ?
+            <>
+              cargando<Loader2 className="animate-spin" size={20} />
+            </> 
+            : 
+            <>
+            <FaCircleCheck size={20}/> finalizar y vincular
+            </>}
           </button>
         </div>
       </div>

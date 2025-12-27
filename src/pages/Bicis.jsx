@@ -509,7 +509,7 @@ export default function BicisPage() {
       />
 
       <div className="pt-24 px-4 mb-4">
-        <h1 className="text-xl font-black text-primary uppercase italic tracking-tighter">Pista Bicis</h1>
+        <h1 className="text-xl font-black text-primary uppercase italic tracking-tighter">alquiler</h1>
       </div>
 
       <div className="px-4 space-y-8">
@@ -517,7 +517,7 @@ export default function BicisPage() {
           <div className="space-y-3 animate-fade-in">
             <div className="flex items-center gap-2 text-primary border-b border-primary/20 pb-1">
               <PlayCircle size={16} />
-              <h2 className="text-xs font-black uppercase tracking-widest">En Pista / Preparación ({enPista.length})</h2>
+              <h2 className="text-xs font-black uppercase tracking-widest">En la Pista ({enPista.length})</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {enPista.map(item => (
@@ -540,7 +540,7 @@ export default function BicisPage() {
         )}
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-white/40 border-b border-white/10 pb-1">
+          <div className="flex items-center gap-2 text-white/70 border-b border-white/10 pb-1">
             <CheckCircle2 size={16} />
             <h2 className="text-xs font-black uppercase tracking-widest">Disponibles ({disponibles.length})</h2>
           </div>

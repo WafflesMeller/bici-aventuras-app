@@ -5,8 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "../supabase/client.js";
 import Navbar from "../components/Navbar";
 import {
-  ArrowRight,
-  ArrowLeft,
   Check,
   ChevronDown,
   Banknote,
