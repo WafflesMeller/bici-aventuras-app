@@ -12,8 +12,7 @@ const BICIS_ORIGINALES = [
   "11", "12", "13"
 ];
 
-// --- NUEVA UTILIDAD DE SONIDO CASIO (0kb) ---
-// Genera la secuencia "Ti ti ti ti" una vez
+// --- UTILIDAD DE SONIDO CASIO (Tu versión ajustada) ---
 const playCasioBurst = () => {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) return;
@@ -21,7 +20,6 @@ const playCasioBurst = () => {
   const ctx = new AudioContext();
   const now = ctx.currentTime;
 
-  // 1. Definimos cómo suena UN solo Bip
   const playSingleBeep = (time) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -32,7 +30,6 @@ const playCasioBurst = () => {
     filter.type = "highpass";
     filter.frequency.value = 1000;
 
-    // Envolvente de volumen (Punch)
     gain.gain.setValueAtTime(0, time);
     gain.gain.linearRampToValueAtTime(2.0, time + 0.001);
     gain.gain.exponentialRampToValueAtTime(0.5, time + 0.05);
@@ -45,31 +42,20 @@ const playCasioBurst = () => {
     osc.stop(time + 0.05);
   };
 
-  // 2. Definimos un GRUPO de 4 bips (La ráfaga "trrr")
   const playBurst = (startTime) => {
-    const gap = 0.08; // Velocidad entre bips dentro del grupo
+    const gap = 0.08; 
     playSingleBeep(startTime);
     playSingleBeep(startTime + gap);
     playSingleBeep(startTime + gap * 2);
     playSingleBeep(startTime + gap * 3);
-    
-    // Retornamos cuándo termina este grupo para calcular el siguiente
     return startTime + (gap * 3) + 0.05; 
   };
 
-  // 3. SECUENCIA FINAL: Repetimos los grupos
-  // Ajusta esta variable para el "vacio" que mencionas
-  const pauseBetweenGroups = 0.15; // 150ms de silencio entre ráfagas
-
-  // Primer grupo
+  const pauseBetweenGroups = 0.15; 
   let nextStart = playBurst(now);
-
-  // Segundo grupo (suena casi inmediato después del primero)
   nextStart = playBurst(nextStart + pauseBetweenGroups);
-  
-  // Tercer grupo (opcional, si quieres más insistencia)
-  // playBurst(nextStart + pauseBetweenGroups);
 };
+
 // --- COMPONENTE MODAL (Sin cambios) ---
 const ModalSeleccionCliente = ({ isOpen, onClose, onConfirm, bikeName }) => {
   const [ventasDisponibles, setVentasDisponibles] = useState([]);
@@ -154,34 +140,27 @@ const ModalSeleccionCliente = ({ isOpen, onClose, onConfirm, bikeName }) => {
   );
 };
 
-// --- TARJETA INTELIGENTE (Modificada solo la alarma) ---
+// --- TARJETA INTELIGENTE ---
 const BiciCard = ({ bici, info, preData, now, onAbrirModal, onIniciarReal, onCancelarPre, onTerminar, onAgregar, onTogglePausa }) => {
   const ocupada = !!info;
   const preseleccionada = !!preData;
   const pausada = info?.estado === 'pausado';
 
-  // Cálculos de tiempo
   const fechaFin = ocupada ? new Date(info.fin).getTime() : 0;
   const fechaInicio = ocupada ? new Date(info.inicio).getTime() : 0;
   
   const tiempoRestanteMs = pausada ? info.pausa_restante : fechaFin - now;
   const tiempoAgotado = ocupada && !pausada && tiempoRestanteMs <= 0;
 
-  // --- LÓGICA DE ALARMA ACTUALIZADA (CASIO) ---
+  // Alarma CASIO
   useEffect(() => {
     let intervalId = null;
-
     if (tiempoAgotado) {
-      // 1. Suena inmediatamente
       playCasioBurst(); 
-      
-      // 2. Se repite cada 2.5 segundos (bucle tipo alarma)
       intervalId = setInterval(() => {
         playCasioBurst();
       }, 2500); 
     }
-
-    // Limpieza al desmontar o si deja de estar agotado
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
@@ -207,7 +186,6 @@ const BiciCard = ({ bici, info, preData, now, onAbrirModal, onIniciarReal, onCan
         "border-primary shadow-[0_0_10px_rgba(0,255,127,0.15)]"
       }`}
     >
-      
       {/* Barra de Progreso */}
       {ocupada && !tiempoAgotado && !pausada && (
         <div className="absolute inset-0 bg-primary/20 z-0 origin-left transition-transform duration-1000 ease-linear pointer-events-none" style={{ transform: `scaleX(${progreso})` }} />
@@ -325,7 +303,7 @@ export default function BicisPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [biciEnModal, setBiciEnModal] = useState(null);
 
-  // 1. Cargar datos
+  // --- CARGA DE DATOS & REALTIME ---
   const fetchPista = async () => {
     const { data } = await supabase
       .from("pista_biciaventuras")
@@ -335,13 +313,41 @@ export default function BicisPage() {
   };
 
   useEffect(() => {
+    // 1. Carga inicial
     fetchPista();
+
+    // 2. Reloj local (para actualizar el contador cada segundo)
     const interval = setInterval(() => setNow(Date.now()), 1000);
-    const channel = supabase.channel('pista-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'pista_biciaventuras' }, () => fetchPista())
-    .subscribe();
-    return () => { clearInterval(interval); supabase.removeChannel(channel); };
+
+    // 3. Suscripción a Realtime
+    const channel = supabase
+      .channel('pista-realtime-sub') // Nombre único para el canal
+      .on(
+        'postgres_changes', 
+        { 
+          event: '*', // Escuchar TODO: INSERT, UPDATE, DELETE
+          schema: 'public', 
+          table: 'pista_biciaventuras' 
+        }, 
+        (payload) => {
+          console.log("Cambio en Bicis detectado:", payload);
+          // Cuando algo cambie, recargamos los datos para estar sincronizados
+          fetchPista();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('🟢 Realtime conectado a pista_biciaventuras');
+        }
+      });
+
+    // Limpieza al desmontar
+    return () => { 
+      clearInterval(interval); 
+      supabase.removeChannel(channel); 
+    };
   }, []);
+  // ---------------------------------
 
   const parseDuracion = (texto) => {
     if (!texto) return 0;
@@ -399,6 +405,8 @@ export default function BicisPage() {
         return copy;
     });
 
+    // Actualizamos UI inmediatamente (Optimista)
+    // Cuando el Realtime detecte el INSERT, esto se reemplazará con el dato real del servidor
     setPistaData(prev => [...prev, nuevaEntradaOptimista]);
 
     showToast(`${bici} iniciada`, "success");
@@ -414,7 +422,7 @@ export default function BicisPage() {
 
     if (error) {
         console.error(error);
-        fetchPista(); 
+        fetchPista(); // Si falla, recargamos para borrar el optimista
     }
   };
 
@@ -423,6 +431,7 @@ export default function BicisPage() {
         const fin = new Date(info.fin).getTime();
         const restante = fin - Date.now();
         
+        // Optimista
         setPistaData(prev => prev.map(item => item.id === info.id ? { ...item, estado: 'pausado', pausa_restante: restante } : item));
         
         await supabase.from("pista_biciaventuras").update({
@@ -434,6 +443,7 @@ export default function BicisPage() {
         const restante = info.pausa_restante || 0;
         const nuevoFin = new Date(Date.now() + restante).toISOString();
 
+        // Optimista
         setPistaData(prev => prev.map(item => item.id === info.id ? { ...item, estado: 'en_curso', fin: nuevoFin, pausa_restante: null } : item));
 
         await supabase.from("pista_biciaventuras").update({
@@ -445,6 +455,7 @@ export default function BicisPage() {
   };
 
   const handleTerminar = async (idRegistro) => {
+    // Optimista: quitamos de pantalla
     setPistaData(prev => prev.filter(item => item.id !== idRegistro));
     showToast("Bicicleta liberada", "info");
     await supabase.from("pista_biciaventuras").update({ estado: 'finalizado' }).eq('id', idRegistro);
