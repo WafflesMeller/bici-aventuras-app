@@ -276,7 +276,6 @@ export default function Dashboard() {
                   <th className="py-3 px-2 font-medium">Monto</th>
                   <th className="py-3 px-2 font-medium">Ref</th>
                   <th className="py-3 px-2 font-medium">Estado</th>
-                  <th className="py-3 px-2 font-medium">Tiempo</th>
                 </tr>
               </thead>
 
@@ -333,12 +332,6 @@ export default function Dashboard() {
                       )}
                     </td>
 
-                    {/* TIEMPO */}
-                    <td className="py-3 px-2">
-                        <div className="flex justify-center">
-                            <CronometroVenta venta={v} onIniciar={handleIniciarAlquiler} />
-                        </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
