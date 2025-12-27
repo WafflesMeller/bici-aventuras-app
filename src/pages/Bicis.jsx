@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import { Bike, Trash2, AlertCircle, PlayCircle, Plus, CheckCircle2, User, X, PauseCircle, Play } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-import { showToast } from "../components/ToastNotification";
+import { showSuccess } from "../components/Notifications";
 import { supabase } from "../supabase/client";
 
 const BICIS_ORIGINALES = [
-  "Consentida", "mini Gaby", "Gaby", 
+  "Consentida", "Mini Gaby", "Gaby", 
   "1", "2", "3", "4", "5", 
   "6", "7", "8", "9", "10", 
   "11", "12", "13"
@@ -409,7 +409,7 @@ export default function BicisPage() {
     // Cuando el Realtime detecte el INSERT, esto se reemplazará con el dato real del servidor
     setPistaData(prev => [...prev, nuevaEntradaOptimista]);
 
-    showToast(`${bici} iniciada`, "success");
+    showSuccess(`${bici} iniciada`, "success");
 
     const { error } = await supabase.from("pista_biciaventuras").insert([{
         bicicleta: nuevaEntradaOptimista.bicicleta,
@@ -457,7 +457,7 @@ export default function BicisPage() {
   const handleTerminar = async (idRegistro) => {
     // Optimista: quitamos de pantalla
     setPistaData(prev => prev.filter(item => item.id !== idRegistro));
-    showToast("Bicicleta liberada", "info");
+    showSuccess("Bicicleta liberada", "info");
     await supabase.from("pista_biciaventuras").update({ estado: 'finalizado' }).eq('id', idRegistro);
   };
 
@@ -466,7 +466,7 @@ export default function BicisPage() {
     const nuevoFinISO = new Date(nuevoFinMs).toISOString();
     
     setPistaData(prev => prev.map(item => item.id === idRegistro ? { ...item, fin: nuevoFinISO } : item));
-    showToast(`+${minutosExtra} min`, "success");
+    showSuccess(`+${minutosExtra} min`, "success");
     await supabase.from("pista_biciaventuras").update({ fin: nuevoFinISO }).eq('id', idRegistro);
   };
 

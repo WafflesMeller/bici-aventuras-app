@@ -45,7 +45,7 @@ export default function Notifications() {
       reverseOrder={false}
       gutter={12}
       toastOptions={{
-        duration: 40000000,
+        duration: 4000,
         style: {
           background: 'transparent',
           boxShadow: 'none',

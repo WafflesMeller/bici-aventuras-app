@@ -32,10 +32,10 @@ useEffect(() => {
   }, [isMobileMenuOpen]);
 
   const tabs = [
-    { key: 'panel', label: 'Panel', icon: <LayoutDashboard size={22} /> },
-    { key: 'cobro', label: 'Cobrar', icon: <Wallet size={22} /> },
-    { key: 'escanear', label: 'Escanear', icon: <Camera size={18} /> },
-    { key: 'bicis', label: 'Bicis', icon: <Bike size={18} /> },
+    { key: 'panel', label: 'Panel', icon: <LayoutDashboard size={25} /> },
+    { key: 'cobro', label: 'Cobrar', icon: <Wallet size={25} /> },
+    { key: 'bicis', label: 'Alquiler', icon: <Bike size={25} /> },
+    { key: 'escanear', label: 'Escanear', icon: <Camera size={25} /> },
   ];
 
   const toggleMobile = () => setIsMobileMenuOpen(!isMobileMenuOpen);

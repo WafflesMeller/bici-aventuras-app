@@ -307,11 +307,11 @@ export default function Dashboard() {
                     {/* REF */}
                     <td className="py-3 px-2">
                       {v.ult_4_ref === "EFECTIVO" ? (
-                        <span className="inline-flex rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                        <span className="inline-flex rounded-full  font-medium text-white/80">
                           Efectivo
                         </span>
                       ) : (
-                        <span className="font-mono text-white/80">
+                        <span className="font-medium text-white/80">
                           #{v.ult_4_ref}
                         </span>
                       )}
