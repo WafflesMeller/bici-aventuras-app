@@ -2,43 +2,42 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/client";
 import Navbar from "../components/Navbar";
-import { FaCircleCheck } from "react-icons/fa6"; // Requiere: npm install react-icons
+import VentaCard from "../components/VentaCard"; 
+import NumberFlow from "@number-flow/react"; // Asegúrate de tener esto instalado
 
 import {
   ArrowLeft,
   Search,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  Hash,
-  IdCard,
+  CalendarDays,
+  Banknote,
+  HandCoins,
   Clock,
   Bike,
-  Phone,
-  Layers,
-  Banknote, // Icono para Efectivo
-  Smartphone, // Icono para Otros
-  CalendarDays,
-  DollarSign, // Icono para Fecha
 } from "lucide-react";
 import { CircularLoading } from "respinner";
 
-const PAGE_SIZE = 10;
+// Placeholder para el logo BDV si no lo tienes importado globalmente
+const bdvLogo = "/bdv-logo.webp"; 
 
-// Formato de fecha limpio (sin cursivas)
-const formatFecha = (date) =>
-  new Intl.DateTimeFormat("es-VE", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(date));
+const PAGE_SIZE = 10;
 
 export default function VentasPage() {
   const navigate = useNavigate();
+  
+  // Estados de Datos
   const [ventas, setVentas] = useState([]);
+  const [stats, setStats] = useState({
+    totalBs: 0,
+    totalUsd: 0,
+    bancoCaja: 0,
+    efectivoCaja: 0,
+    pendienteCobrar: 0,
+    bicisHoy: 0,
+  });
+  
+  // Estados de UI y Filtros
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -47,13 +46,23 @@ export default function VentasPage() {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState(null);
 
+  // Efecto único para recargar datos cuando cambian los filtros
   useEffect(() => {
-    const t = setTimeout(fetchVentas, 300);
+    const t = setTimeout(() => {
+      fetchData();
+    }, 300);
     return () => clearTimeout(t);
   }, [page, desde, hasta, search]);
 
-  const fetchVentas = async () => {
+  // Función Maestra que llama a la lista y a las estadísticas
+  const fetchData = async () => {
     setLoading(true);
+    await Promise.all([fetchVentasList(), fetchStats()]);
+    setLoading(false);
+  };
+
+  // 1. Obtener Lista Paginada (Para las tarjetas de abajo)
+  const fetchVentasList = async () => {
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -63,9 +72,9 @@ export default function VentasPage() {
       .order("created_at", { ascending: false })
       .range(from, to);
 
+    // Aplicar Filtros
     if (desde) query = query.gte("created_at", desde);
     if (hasta) query = query.lte("created_at", `${hasta}T23:59:59`);
-
     if (search.trim()) {
       const s = search.trim();
       query = query.or(
@@ -78,55 +87,74 @@ export default function VentasPage() {
       setVentas(data || []);
       setTotalCount(count || 0);
     }
-    setLoading(false);
+  };
+
+  // 2. Obtener Estadísticas Globales (Basadas en el filtro actual, SIN paginación)
+  const fetchStats = async () => {
+    // Seleccionamos solo las columnas necesarias para calcular sumas (optimización)
+    let query = supabase
+      .from("ventas-biciaventuras")
+      .select("monto_exacto_bs, tasa_bcv, pagado, ult_4_ref, metodo_pago, cantidad_bicicletas");
+
+    // Aplicar EXACTAMENTE los mismos filtros que arriba
+    if (desde) query = query.gte("created_at", desde);
+    if (hasta) query = query.lte("created_at", `${hasta}T23:59:59`);
+    if (search.trim()) {
+      const s = search.trim();
+      query = query.or(
+        `nombre_cliente.ilike.%${s}%,telefono_cliente.ilike.%${s}%,ult_4_ref.ilike.%${s}%,cedula_cliente.ilike.%${s}%`
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data) {
+      const ventasConfirmadas = data.filter((v) => v.pagado);
+      const ventasPendientes = data.filter((v) => !v.pagado);
+
+      // Cálculos
+      const totalBs = ventasConfirmadas.reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
+      
+      const totalUsd = ventasConfirmadas.reduce(
+        (acc, v) => acc + Number(v.monto_exacto_bs) / Number(v.tasa_bcv || 1),
+        0
+      );
+
+      const bancoCaja = ventasConfirmadas
+        .filter(
+          (v) =>
+            v.ult_4_ref !== "EFECTIVO" &&
+            v.metodo_pago !== "EFECTIVO" &&
+            v.pagado === true
+        )
+        .reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
+
+      const efectivoCaja = ventasConfirmadas
+        .filter((v) => v.ult_4_ref === "EFECTIVO" || v.metodo_pago === "EFECTIVO")
+        .reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
+
+      const pendienteCobrar = ventasPendientes.reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
+      
+      const bicisHoy = ventasConfirmadas.reduce((acc, v) => acc + Number(v.cantidad_bicicletas), 0);
+
+      setStats({
+        totalBs,
+        totalUsd,
+        bancoCaja,
+        efectivoCaja,
+        pendienteCobrar,
+        bicisHoy,
+      });
+    }
   };
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-  // Helper para renderizar el método de pago según tu lógica
-  const renderMetodoPago = (metodo) => {
-    const m = (metodo || "").toLowerCase();
-
-    // Caso BDV: Logo específico + Mayúsculas
-    if (m.includes("bdv")) {
-      return (
-        <div className="flex items-center gap-2">
-          <img
-            src="/bdv-logo.webp"
-            alt="BDV"
-            className="w-5 h-5 object-contain rounded-full" // Pequeño fondo por si el logo es png transparente
-          />
-          <span className="text-white/90">BDV</span>
-        </div>
-      );
-    }
-
-    // Caso Efectivo: Icono Billete
-    if (m === "efectivo") {
-      return (
-        <div className="flex items-center gap-2">
-          <Banknote size={16} className="text-green-400" />
-          <span className="text-white/90 uppercase">EFECTIVO</span>
-        </div>
-      );
-    }
-
-    // Caso Otros: Icono Smartphone
-    return (
-      <div className="flex items-center gap-2">
-        <Smartphone size={16} className="text-blue-400" />
-        <span className="text-white/90 uppercase">
-          {metodo || "OTROS"}
-        </span>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen text-white pb-20">
       <Navbar />
       {/* HEADER FIJO */}
-      <div className="pt-20 sticky top-0 z-40 backdrop-blur-xs ">
+      <div className="pt-20 sticky top-0 z-40 backdrop-blur-xl ">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
@@ -140,11 +168,11 @@ export default function VentasPage() {
           </h1>
         </div>
       </div>
+
       <div className="max-w-7xl mx-auto p-4 space-y-6 animate-fade-in">
-        {/* BUSCADOR */}
-{/* BUSCADOR Y FILTROS */}
+
+                {/* BUSCADOR Y FILTROS */}
         <div className="bg-white/5 border border-white/10 rounded-3xl p-5 backdrop-blur-md shadow-xl flex flex-col gap-4">
-          
           {/* BARRA DE BÚSQUEDA (Full Width) */}
           <div className="relative group">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary transition-colors duration-300">
@@ -164,7 +192,6 @@ export default function VentasPage() {
 
           {/* FILTROS DE FECHA (Grid 2 columnas) */}
           <div className="grid grid-cols-2 gap-3">
-            
             {/* INPUT: DESDE */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest ml-1 flex items-center gap-1">
@@ -178,8 +205,8 @@ export default function VentasPage() {
                     setPage(1);
                     setDesde(e.target.value);
                   }}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-3 h-11 text-sm text-white focus:border-primary/50 focus:bg-black/40 transition-all outline-none appearance-none min-h-[44px]"
-                  style={{ colorScheme: "dark" }} // Fuerza el calendario oscuro en el navegador
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-3 h-11 text-sm text-white focus:border-primary/50 focus:bg-black/40 transition-all outline-none appearance-none min-h-11"
+                  style={{ colorScheme: "dark" }}
                 />
               </div>
             </div>
@@ -197,14 +224,155 @@ export default function VentasPage() {
                     setPage(1);
                     setHasta(e.target.value);
                   }}
-                  className="w-full bg-black/20 border border-white/10 rounded-xl px-3 h-11 text-sm text-white focus:border-primary/50 focus:bg-black/40 transition-all outline-none appearance-none min-h-[44px]"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-3 h-11 text-sm text-white focus:border-primary/50 focus:bg-black/40 transition-all outline-none appearance-none min-h-11"
                   style={{ colorScheme: "dark" }}
                 />
               </div>
             </div>
-            
           </div>
         </div>
+        
+        {/* --- GRID DE ESTADÍSTICAS (Actualizado con filtros) --- */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {/* 1. TOTAL GENERADO (Grande) */}
+          <div className="col-span-2 bg-linear-to-r from-primary/20 to-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between backdrop-blur-sm relative overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-xs text-primary/80 font-medium uppercase tracking-wider">
+                Ingreso Total
+              </p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <p className="text-3xl font-bold text-white">
+                  <NumberFlow
+                    value={stats.totalBs}
+                    duration={0.8}
+                    locales="es-VE"
+                    className="tabular-nums"
+                    format={{
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }}
+                  />
+                </p>
+                <span className="text-sm font-normal text-white/50">Bs</span>
+              </div>
+              <p className="text-xs text-white/40 mt-1 flex items-center gap-1">
+                ≈
+                <NumberFlow
+                  locales="en-US"
+                  value={stats.totalUsd}
+                  duration={0.8}
+                  className="tabular-nums"
+                  format={{
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }}
+                />
+                USD
+              </p>
+            </div>
+            <div className="bg-primary/20 p-3 rounded-full relative z-10">
+              <Banknote className="text-primary" size={24} />
+            </div>
+          </div>
+
+          {/* 2. BANCO (BDV) */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-white/60 uppercase font-bold">
+                Banco (BDV)
+              </p>
+              <img
+                src={bdvLogo}
+                alt="BDV"
+                className="w-4 h-4 object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </div>
+            <p className="text-lg font-semibold text-white">
+              <NumberFlow
+                value={stats.bancoCaja}
+                duration={0.8}
+                locales="es-VE"
+                className="tabular-nums"
+                format={{
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+              />
+              <span className="text-[10px] text-white/50 ml-1">Bs</span>
+            </p>
+          </div>
+
+          {/* 3. EFECTIVO EN CAJA */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-white/60 uppercase font-bold">
+                Efectivo
+              </p>
+              <HandCoins size={16} className="text-green-400" />
+            </div>
+            <p className="text-lg font-semibold text-white">
+              <NumberFlow
+                value={stats.efectivoCaja}
+                duration={0.8}
+                locales="es-VE"
+                className="tabular-nums"
+                format={{
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+              />
+              <span className="text-[10px] text-white/50 ml-1">Bs</span>
+            </p>
+          </div>
+
+          {/* 4. PENDIENTE POR COBRAR */}
+          <div className="bg-white/5 border border-red-500/30 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-red-500/90 uppercase font-bold">
+                Por verificar
+              </p>
+              <Clock size={16} className="text-red-500" />
+            </div>
+            <p className="text-lg font-semibold text-white">
+              <NumberFlow
+                value={stats.pendienteCobrar}
+                duration={0.8}
+                locales="es-VE"
+                className="tabular-nums"
+                format={{
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+              />
+              <span className="text-[10px] text-white/50 ml-1">Bs</span>
+            </p>
+          </div>
+
+          {/* 5. BICIS ALQUILADAS */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-white/60 uppercase font-bold">
+                Bicis alquiladas
+              </p>
+              <Bike size={16} className="text-blue-400" />
+            </div>
+            <p className="text-2xl font-semibold text-white">
+              <NumberFlow
+                value={stats.bicisHoy}
+                duration={0.8}
+                className="tabular-nums"
+                format={{
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }}
+              />
+            </p>
+          </div>
+        </div>
+
+
 
         {/* LISTADO DE VENTAS */}
         <div className="space-y-3">
@@ -213,164 +381,14 @@ export default function VentasPage() {
               <CircularLoading color="#00ff7f" size={80} />
             </div>
           ) : (
-            ventas.map((v) => {
-              const isOpen = expandedId === v.id;
-
-              return (
-                <div
-                  key={v.id}
-                  className={`bg-white/5 border rounded-2xl overflow-hidden backdrop-blur-sm transition-all duration-300 shadow-sm
-                    ${
-                      isOpen
-                        ? "border-primary/30 bg-white/10"
-                        : "border-white/10 hover:bg-white/10"
-                    }
-                  `}
-                >
-                  {/* HEADER DE LA TARJETA (Siempre visible) */}
-                  <button
-                    onClick={() => setExpandedId(isOpen ? null : v.id)}
-                    className="w-full p-4 text-left transition-colors"
-                  >
-                    <div className="flex justify-between items-center gap-4">
-                      {/* LADO IZQUIERDO: Nombre e Info Clave */}
-                      <div className="flex flex-col gap-1 overflow-hidden flex-1">
-                        {/* Fila 1: Estado + Nombre */}
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          {v.pagado ? (
-                            <FaCircleCheck
-                              className="text-green-400 shrink-0"
-                              size={18}
-                            />
-                          ) : (
-                            <Clock
-                              className="text-yellow-400 shrink-0"
-                              size={18}
-                            />
-                          )}
-                          <span className="font-bold text-white text-base truncate tracking-tight">
-                            {v.nombre_cliente.toUpperCase()}
-                          </span>
-                        </div>
-
-                        {/* Fila 2: Ref, Cédula y Fecha */}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/60 ">
-                          <span className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded text-primary border border-white/5">
-                            <Hash size={10} /> {v.ult_4_ref || "---"}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <IdCard size={12} /> {v.cedula_cliente}
-                          </span>
-                          <span className="flex items-center gap-1 opacity-70">
-                            <CalendarDays size={12} />{" "}
-                            {formatFecha(v.created_at)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* LADO DERECHO: Monto y Flecha */}
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className="font-bold text-white tracking-tight">
-                          {Number(v.monto_exacto_bs).toLocaleString("es-VE", {
-                            minimumFractionDigits: 2,
-                          })}{" "}
-                          Bs
-                        </span>
-                        <ChevronDown
-                          size={20}
-                          className={`transition-transform duration-300 ${
-                            isOpen ? "rotate-180 text-primary" : "text-white/30"
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* CONTENIDO DESPLEGABLE (Datos Detallados) */}
-                  <div
-                    className={`grid transition-all duration-300 ease-out ${
-                      isOpen
-                        ? "grid-rows-[1fr] opacity-100 border-t border-white/10"
-                        : "grid-rows-[0fr] opacity-0"
-                    }`}
-                  >
-                    <div className="overflow-hidden bg-black/20">
-                      <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8 text-xs">
-                        {/* COLUMNA 1: Financiero y Contacto */}
-                        <div className="space-y-4">
-                          {/* Método de Pago Personalizado */}
-                          <div className="flex flex-col gap-1">
-                            <span className="text-white/40 uppercase font-bold tracking-widest text-[9px]">
-                              Método de Pago
-                            </span>
-                            <div className="bg-white/5 p-2 rounded-lg border border-white/5 w-fit">
-                              {renderMetodoPago(v.metodo_pago)}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <span className="text-white/40 uppercase font-bold tracking-widest text-[9px]">
-                              Referencia Completa
-                            </span>
-                            <div className="flex items-center gap-2 text-white/90 font-mono text-xs select-all">
-                              <Layers size={14} className="text-primary/50" />
-                              {v.referencia_pago || "No registrada"}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <span className="text-white/40 uppercase font-bold tracking-widest text-[9px]">
-                              Teléfono Contacto
-                            </span>
-                            <div className="flex items-center gap-2 text-white/90 ">
-                              <Phone size={14} className="text-primary/50" />
-                              {v.telefono_cliente || "Sin número"}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* COLUMNA 2: Detalles del Alquiler */}
-                        <div className="space-y-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-white/40 uppercase font-bold tracking-widest text-[9px]">
-                              Alquiler
-                            </span>
-                            <div className="flex items-center gap-2 text-white/90 text-sm">
-                              <Bike size={16} className="text-primary/50" />
-                              {v.cantidad_bicicletas} Bicicleta
-                              {v.cantidad_bicicletas > 1 ? "s" : ""}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <span className="text-white/40 uppercase font-bold tracking-widest text-[9px]">
-                              Duración
-                            </span>
-                            <div className="flex items-center gap-2 text-white/90">
-                              <Clock size={14} className="text-primary/50" />
-                              {v.tiempo_alquiler || "Tiempo indefinido"}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <span className="text-white/40 uppercase font-bold tracking-widest text-[9px]">
-                              Tasa de Cambio (BCV)
-                            </span>
-                            <div className="flex items-center gap-2 text-white/90">
-                              <DollarSign size={14} className="text-primary/50" />
-                              {Number(v.tasa_bcv || 0).toLocaleString("es-VE", {
-                                minimumFractionDigits: 2,
-                              })}{" "}
-                              Bs
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+            ventas.map((v) => (
+              <VentaCard
+                key={v.id}
+                v={v}
+                expandedId={expandedId}
+                setExpandedId={setExpandedId}
+              />
+            ))
           )}
         </div>
 

@@ -77,7 +77,7 @@ useEffect(() => {
     <LayoutGroup>
       {/* NAVBAR SUPERIOR */}
       <nav
-        className={`w-full backdrop-blur-xs fixed top-0 left-0 z-100
+        className={`w-full backdrop-blur-xl fixed top-0 left-0 z-100
       ${isMobileMenuOpen ? '' : 'bg-white/5 transition-colors duration-500'}`}
       >
         <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -114,7 +114,7 @@ useEffect(() => {
             <button
               onClick={handleLogout}
               className="ml-3 flex items-center gap-2 text-white px-3 py-1.5 rounded-lg
-                         bg-red-500/10 backdrop-blur-sm border border-red-500/20
+                         bg-red-500/10 backdrop-blur-xl border border-red-500/20
                          hover:bg-red-500/20 transition"
             >
               <LogOut size={18} />
@@ -160,7 +160,7 @@ useEffect(() => {
 
       <div
         className={`
-    md:hidden fixed inset-0 bg-white/5 backdrop-blur-md
+    md:hidden fixed inset-0 bg-white/5 backdrop-blur-xl
     z-99 flex flex-col items-center justify-between
     transition-all duration-300
     ${isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
@@ -188,7 +188,7 @@ useEffect(() => {
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-white px-8 py-2 rounded-full
-                       bg-red-500/20 backdrop-blur-sm border border-red-500/20
+                       bg-red-500/20 backdrop-blur-xl border border-red-500/20
                        hover:bg-red-500/20 transition text-xl"
           >
             <LogOut size={22} />

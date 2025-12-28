@@ -4,23 +4,30 @@ import {
   DollarSign,
   Bike,
   ArrowRight,
-  CheckCircle,
   Clock,
-  CircleCheck,
   Banknote,
-  Play, 
   Timer,
+  ListTodo,
+  HandCoins,
 } from "lucide-react";
 import { supabase } from "../supabase/client.js";
 import { CircularLoading } from "respinner";
 import { useNavigate } from "react-router-dom";
 import { FaCircleCheck } from "react-icons/fa6";
-
+import bdvLogo from "/bdv-logo.webp";
+import NumberFlow from "@number-flow/react";
 
 export default function Dashboard() {
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalBs: 0, totalUsd: 0, bicisHoy: 0 });
+  const [stats, setStats] = useState({
+    totalBs: 0,
+    totalUsd: 0,
+    bicisHoy: 0,
+    pendienteCobrar: 0,
+    efectivoCaja: 0,
+    ticketPromedio: 0,
+  });
   const [connectionStatus, setConnectionStatus] = useState("connecting"); // Agregado
   const navigate = useNavigate();
 
@@ -37,33 +44,65 @@ export default function Dashboard() {
       timeZone: "America/Caracas",
     })}T06:00:00-04:00`;
 
+    // 1. ELIMINAMOS .limit(5) para traer TODO lo de hoy y calcular bien
     const { data, error } = await supabase
       .from("ventas-biciaventuras")
       .select("*")
       .gte("created_at", today)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false });
 
     if (!error && data) {
       setVentas(data);
 
-      // 1. Creamos un filtro intermedio
       const ventasConfirmadas = data.filter((v) => v.pagado);
+      const ventasPendientes = data.filter((v) => !v.pagado);
+      const banco1 = data.filter((v) => !v.efectivo);
 
-      // 2. Sumamos usando solo ese filtro
+      // --- CÁLCULOS ---
       const totalBs = ventasConfirmadas.reduce(
         (acc, v) => acc + Number(v.monto_exacto_bs),
         0
       );
+
       const totalUsd = ventasConfirmadas.reduce(
         (acc, v) => acc + Number(v.monto_exacto_bs) / Number(v.tasa_bcv || 1),
         0
       );
+
       const bicisHoy = ventasConfirmadas.reduce(
         (acc, v) => acc + Number(v.cantidad_bicicletas),
         0
       );
 
-      setStats({ totalBs, totalUsd, bicisHoy });
+      // Nuevos Cálculos
+      const pendienteCobrar = ventasPendientes.reduce(
+        (acc, v) => acc + Number(v.monto_exacto_bs),
+        0
+      );
+
+      const efectivoCaja = ventasConfirmadas
+        .filter(
+          (v) => v.ult_4_ref === "EFECTIVO" || v.metodo_pago === "EFECTIVO"
+        )
+        .reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
+
+      const bancoCaja = banco1
+        .filter(
+          (v) =>
+            v.ult_4_ref !== "EFECTIVO" &&
+            v.metodo_pago !== "EFECTIVO" &&
+            v.pagado === true
+        )
+        .reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
+
+      setStats({
+        totalBs,
+        totalUsd,
+        bicisHoy,
+        pendienteCobrar,
+        efectivoCaja,
+        bancoCaja,
+      });
     }
     setLoading(false);
   };
@@ -173,44 +212,149 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* --- TARJETAS SUPERIORES (Estilo Original) --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between backdrop-blur-sm">
-            <div>
-              <p className="text-sm text-white/70">Generado hoy (Bs)</p>
-              <p className="text-2xl font-semibold text-white mt-1">
-                {stats.totalBs.toLocaleString("es-VE", {
+        {/* --- GRID DE TARJETAS NUEVO --- */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {/* 1. TOTAL GENERADO (Grande) */}
+          <div className="col-span-2 bg-linear-to-r from-primary/20 to-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between backdrop-blur-sm relative overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-xs text-primary/80 font-medium uppercase tracking-wider">
+                Ingreso Total Hoy
+              </p>
+              <p className="text-3xl font-bold text-white">
+                <NumberFlow
+                  value={stats.totalBs}
+                  duration={0.8}
+                  locales="es-VE"
+                  className="tabular-nums"
+                  format={{
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }}
+                />
+
+                <span className="text-sm font-normal text-white/50 ml-1">
+                  Bs
+                </span>
+              </p>
+              <p className="text-xs text-white/40 mt-1">
+                ≈{" "}
+                <NumberFlow
+                  locales="en-US"
+                  value={stats.totalUsd}
+                  duration={0.8}
+                  className="tabular-nums"
+                  format={{
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }}
+                />{" "}
+                USD
+              </p>
+            </div>
+            <div className="bg-primary/20 p-3 rounded-full relative z-10">
+              <Banknote className="text-primary" size={24} />
+            </div>
+          </div>
+
+          {/* 2. BANCO (BDV) */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-white/60 uppercase font-bold">
+                Banco (BDV)
+              </p>
+              <img
+                src={bdvLogo}
+                alt="BDV"
+                className="w-4 h-4 object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </div>
+            <p className="text-lg font-semibold text-white">
+              <NumberFlow
+                value={stats.bancoCaja}
+                duration={0.8}
+                locales="es-VE"
+                className="tabular-nums"
+                format={{
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                })}
-              </p>
-            </div>
-            <span className="text-primary font-semibold text-3xl"> Bs</span>
+                }}
+              />
+              <span className="text-[10px] text-white/50 ml-1">Bs</span>
+            </p>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between backdrop-blur-sm">
-            <div>
-              <p className="text-sm text-white/70">Equivalente en USD</p>
-              <p className="text-2xl font-semibold text-white mt-1">
-                {stats.totalUsd.toFixed(2)}
+          {/* 3. EFECTIVO EN CAJA */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-white/60 uppercase font-bold">
+                Efectivo
               </p>
+              <HandCoins size={16} className="text-green-400" />
             </div>
-            <DollarSign className="text-primary" size={32} />
+            <p className="text-lg font-semibold text-white">
+                            <NumberFlow
+                value={stats.efectivoCaja}
+                duration={0.8}
+                locales="es-VE"
+                className="tabular-nums"
+                format={{
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+              />
+              <span className="text-[10px] text-white/50 ml-1">Bs</span>
+            </p>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between col-span-1 sm:col-span-2 backdrop-blur-sm">
-            <div>
-              <p className="text-sm text-white/70">Bicicletas alquiladas hoy</p>
-              <p className="text-2xl font-semibold text-white mt-1">
-                {stats.bicisHoy}
+          {/* 4. PENDIENTE POR COBRAR */}
+          <div className="bg-white/5 border border-red-500/30 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-red-500/90 uppercase font-bold">
+                Por verificar
               </p>
+              <Clock size={16} className="text-red-500" />
             </div>
-            <Bike className="text-primary" size={32} />
+            <p className="text-lg font-semibold text-white">
+                            <NumberFlow
+                value={stats.pendienteCobrar}
+                duration={0.8}
+                locales="es-VE"
+                className="tabular-nums"
+                format={{
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+              />
+              <span className="text-[10px] text-white/50 ml-1">Bs</span>
+            </p>
+          </div>
+
+          {/* 5. BICIS ALQUILADAS */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-between backdrop-blur-sm">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[10px] text-white/60 uppercase font-bold">
+                Bicis alquiladas
+              </p>
+              <Bike size={16} className="text-blue-400" />
+            </div>
+            <p className="text-2xl font-semibold text-white">
+                            <NumberFlow
+                value={stats.bicisHoy}
+                duration={0.8}
+                className="tabular-nums"
+                format={{
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }}
+              />
+            </p>
           </div>
         </div>
 
         {/* --- TABLA DE ÚLTIMAS VENTAS (Estructura Original) --- */}
-        <div className="mt-10 bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+        <div className="mt-10 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm p-3.5">
           <h2 className="text-lg font-semibold mb-4 text-white/90">
             Últimas ventas
           </h2>
@@ -221,9 +365,11 @@ export default function Dashboard() {
               <thead className="border-white/10 rounded-t-xl backdrop-blur-md sticky top-0">
                 <tr className="text-white/60 uppercase tracking-wider">
                   <th className="py-3 px-2 text-left font-medium">Cliente</th>
-                  <th className="py-3 px-2 font-medium">Monto</th>
-                  <th className="py-3 px-2 font-medium">Ref</th>
-                  <th className="py-3 px-2 font-medium">Estado</th>
+                  <th className="py-3 px-2 font-medium">bs</th>
+                  <th className="py-3 px-2 font-medium">#</th>
+                  <th className="py-3 px-2 font-medium">
+                    <ListTodo size={17} />
+                  </th>
                 </tr>
               </thead>
 
@@ -238,14 +384,16 @@ export default function Dashboard() {
                           {v.nombre_cliente}
                         </span>
                         <span className="text-[11px] text-white/40">
-                          {v.tiempo_alquiler} • {v.cantidad_bicicletas} bici(s)
+                          {v.tiempo_alquiler} • {v.cantidad_bicicletas}{" "}
+                          {Number(v.cantidad_bicicletas) === 1
+                            ? "Bici"
+                            : "Bicis"}
                         </span>
                       </div>
                     </td>
 
                     {/* MONTO */}
-                    <td className="py-3 px-2 font-medium text-white/80">
-                      Bs.{" "}
+                    <td className="py-3 px-2 text-white/80">
                       {Number(v.monto_exacto_bs).toLocaleString("es-VE", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -255,13 +403,11 @@ export default function Dashboard() {
                     {/* REF */}
                     <td className="py-3 px-2">
                       {v.ult_4_ref === "EFECTIVO" ? (
-                        <span className="inline-flex rounded-full  font-medium text-white/80">
+                        <span className="inline-flex rounded-full text-white/80">
                           Efectivo
                         </span>
                       ) : (
-                        <span className="font-medium text-white/80">
-                          #{v.ult_4_ref}
-                        </span>
+                        <span className="text-white/80">{v.ult_4_ref}</span>
                       )}
                     </td>
 
@@ -279,7 +425,6 @@ export default function Dashboard() {
                         />
                       )}
                     </td>
-
                   </tr>
                 ))}
               </tbody>
