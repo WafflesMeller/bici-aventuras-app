@@ -116,9 +116,9 @@ const parseMontoVzla = (textoCrudo) => {
           raw_data: text 
         }));
 
-        if (!resultadoMonto.num) toast.error("Monto no detectado.");
+        if (!resultadoMonto.num) showError("Monto no detectado.");
       } catch (err) {
-        toast.error("Error al procesar");
+        showError("Error al procesar");
       } finally {
         setLoading(false);
       }
@@ -128,7 +128,7 @@ const parseMontoVzla = (textoCrudo) => {
   const guardarPagoCompleto = async () => {
     if (isSaving) return;
     if (!data.referencia || !data.monto_numerico) {
-      toast.error("Datos incompletos");
+      showError("Datos incompletos");
       return;
     }
 
@@ -154,7 +154,7 @@ const parseMontoVzla = (textoCrudo) => {
       showSuccess("¡Pago registrado!");
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
-      toast.error(err.message);
+      showError(err.message);
       setIsSaving(false);
     }
   };

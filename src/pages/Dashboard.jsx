@@ -16,50 +16,6 @@ import { CircularLoading } from "respinner";
 import { useNavigate } from "react-router-dom";
 import { FaCircleCheck } from "react-icons/fa6";
 
-// --- Lógica del Cronómetro ---
-const parseDuracion = (texto) => {
-  if (!texto) return 0;
-  const numero = parseInt(texto.match(/\d+/)?.[0] || 0);
-  if (texto.toLowerCase().includes("hora")) return numero * 60;
-  return numero;
-};
-
-const CronometroVenta = ({ venta, onIniciar }) => {
-  const [tiempoRestante, setTiempoRestante] = useState(null);
-  const [estado, setEstado] = useState("pendiente");
-
-  useEffect(() => {
-    if (!venta.fecha_inicio_uso) {
-      setEstado("pendiente");
-      return;
-    }
-    const calcular = () => {
-      const inicio = new Date(venta.fecha_inicio_uso).getTime();
-      const minutos = parseDuracion(venta.tiempo_alquiler);
-      const fin = inicio + (minutos * 60 * 1000);
-      const diff = fin - new Date().getTime();
-
-      if (diff <= 0) {
-        setEstado("finalizado");
-        setTiempoRestante("00:00");
-      } else {
-        setEstado("corriendo");
-        const m = Math.floor((diff / 1000 / 60) << 0);
-        const s = Math.floor((diff / 1000) % 60);
-        setTiempoRestante(`${m}:${s.toString().padStart(2, "0")}`);
-      }
-    };
-    calcular();
-    const intervalo = setInterval(calcular, 1000);
-    return () => clearInterval(intervalo);
-  }, [venta.fecha_inicio_uso, venta.tiempo_alquiler]);
-
-  if (!venta.pagado) return <span className="text-[10px] text-white/40">---</span>;
-  if (estado === "pendiente") return <button onClick={() => onIniciar(venta.id)} className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-bold border border-green-500/50 flex items-center gap-1"><Play size={10} /> INICIAR</button>;
-  if (estado === "finalizado") return <span className="text-red-500 font-bold text-xs">TIEMPO FIN</span>;
-  
-  return <div className="text-yellow-400 font-mono font-bold text-sm bg-yellow-400/10 px-1 py-1 rounded border border-yellow-400/20 animate-pulse flex gap-1 items-center justify-center"><Timer size={12}/> {tiempoRestante}</div>;
-};
 
 export default function Dashboard() {
   const [ventas, setVentas] = useState([]);
@@ -68,13 +24,6 @@ export default function Dashboard() {
   const [connectionStatus, setConnectionStatus] = useState("connecting"); // Agregado
   const navigate = useNavigate();
 
-  // --- Función para guardar inicio al cronometro ---
-  const handleIniciarAlquiler = async (id) => {
-    await supabase
-      .from("ventas-biciaventuras")
-      .update({ fecha_inicio_uso: new Date().toISOString() })
-      .eq("id", id);
-  };
   // ---- Lógica de Permisos de Notificación ---
   const pedirPermiso = async () => {
     const permiso = await Notification.requestPermission();
@@ -93,7 +42,6 @@ export default function Dashboard() {
       .select("*")
       .gte("created_at", today)
       .order("created_at", { ascending: false })
-      .limit(5);
 
     if (!error && data) {
       setVentas(data);
@@ -281,7 +229,7 @@ export default function Dashboard() {
 
               {/* BODY */}
               <tbody className="divide-y divide-white/5">
-                {ventas.map((v) => (
+                {ventas.slice(0, 5).map((v) => (
                   <tr key={v.id} className="hover:bg-white/5 transition-colors">
                     {/* CLIENTE */}
                     <td className="py-3 px-2 text-left">
