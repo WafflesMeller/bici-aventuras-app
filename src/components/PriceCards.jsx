@@ -38,6 +38,7 @@ export default function PriceCards() {
         <div className="flex items-baseline gap-1">
           <span className="text-lg font-bold text-white tabular-nums">
             <NumberFlow
+                locales="es-VE" 
               value={tasa}
               format={{
                 minimumFractionDigits: 2,
