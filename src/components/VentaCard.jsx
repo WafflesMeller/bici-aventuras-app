@@ -67,7 +67,7 @@ export default function VentaCard({ v, expandedId, setExpandedId }) {
 
   return (
     <div
-      className={`bg-white/5 border rounded-2xl overflow-hidden backdrop-blur-sm transition-all duration-300 shadow-sm
+      className={`bg-white/5 border rounded-2xl overflow-hidden backdrop-blur-xl transition-all duration-300 shadow-sm
         ${
           isOpen
             ? "border-primary/30 bg-white/10"

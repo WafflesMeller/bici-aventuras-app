@@ -33,6 +33,7 @@ import { showSuccess, showError } from "../components/Notifications";
 
 import NumberFlow from "@number-flow/react";
 import { FaCircleCheck } from "react-icons/fa6";
+import PriceCards from "../components/PriceCards.jsx";
 
 // --- VALIDACIONES ---
 const paso1Schema = z.object({
@@ -162,7 +163,8 @@ export default function Cobro() {
   return (
     <div className="min-h-screen text-white">
       <Navbar />
-      <div className="pt-28 px-4 max-w-md mx-auto pb-10">
+      <div className="pt-24 px-4 max-w-md mx-auto pb-10">
+        <PriceCards />
         <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10 overflow-hidden">
           <div className="mb-8">
             <div className="flex justify-between items-end mb-2">

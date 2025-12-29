@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import {
-  DollarSign,
   Bike,
   ArrowRight,
   Clock,
   Banknote,
-  Timer,
   ListTodo,
   HandCoins,
 } from "lucide-react";
@@ -16,20 +14,39 @@ import { useNavigate } from "react-router-dom";
 import { FaCircleCheck } from "react-icons/fa6";
 import bdvLogo from "/bdv-logo.webp";
 import NumberFlow from "@number-flow/react";
+import PriceCards from "../components/PriceCards.jsx";
 
 export default function Dashboard() {
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tasa, setTasa] = useState(0);
   const [stats, setStats] = useState({
     totalBs: 0,
     totalUsd: 0,
     bicisHoy: 0,
     pendienteCobrar: 0,
     efectivoCaja: 0,
-    ticketPromedio: 0,
   });
   const [connectionStatus, setConnectionStatus] = useState("connecting"); // Agregado
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchTasa = async () => {
+      try {
+        const res = await fetch(
+          "https://bici-aventuras-app.vercel.app/api/tasa?t=" + Date.now()
+        );
+        if (!res.ok) throw new Error("Error API");
+        const data = await res.json();
+        const precio = data.current?.usd || data.price || 0;
+        if (precio > 0) setTasa(Number(precio));
+      } catch (err) {
+        console.error("Usando tasa base:", err);
+      }
+      // Nota: No ponemos setLoading(false) aquí para esperar a Supabase
+    };
+    fetchTasa();
+  }, []);
 
   // ---- Lógica de Permisos de Notificación ---
   const pedirPermiso = async () => {
@@ -180,9 +197,9 @@ export default function Dashboard() {
     <div className="min-h-screen mb-5">
       <Navbar />
 
-      <div className="pt-24 px-4 max-w-xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <h1 className="text-2xl font-semibold text-white">
+      <div className="pt-20 sticky top-0 z-40 backdrop-blur-xl ">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+          <h1 className="text-lg font-bold text-primary uppercase italic tracking-tighter">
             Panel de Control
           </h1>
 
@@ -211,7 +228,10 @@ export default function Dashboard() {
               : "Sin conexión"}
           </div>
         </div>
+      </div>
 
+      <div className="px-4 max-w-xl mx-auto">
+        <PriceCards />
         {/* --- GRID DE TARJETAS NUEVO --- */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           {/* 1. TOTAL GENERADO (Grande) */}
@@ -294,7 +314,7 @@ export default function Dashboard() {
               <HandCoins size={16} className="text-green-400" />
             </div>
             <p className="text-lg font-semibold text-white">
-                            <NumberFlow
+              <NumberFlow
                 value={stats.efectivoCaja}
                 duration={0.8}
                 locales="es-VE"
@@ -317,7 +337,7 @@ export default function Dashboard() {
               <Clock size={16} className="text-red-500" />
             </div>
             <p className="text-lg font-semibold text-white">
-                            <NumberFlow
+              <NumberFlow
                 value={stats.pendienteCobrar}
                 duration={0.8}
                 locales="es-VE"
@@ -340,7 +360,7 @@ export default function Dashboard() {
               <Bike size={16} className="text-blue-400" />
             </div>
             <p className="text-2xl font-semibold text-white">
-                            <NumberFlow
+              <NumberFlow
                 value={stats.bicisHoy}
                 duration={0.8}
                 className="tabular-nums"
@@ -375,58 +395,73 @@ export default function Dashboard() {
 
               {/* BODY */}
               <tbody className="divide-y divide-white/5">
-                {ventas.slice(0, 5).map((v) => (
-                  <tr key={v.id} className="hover:bg-white/5 transition-colors">
-                    {/* CLIENTE */}
-                    <td className="py-3 px-2 text-left">
-                      <div className="flex flex-col">
-                        <span className="text-white/90">
-                          {v.nombre_cliente}
-                        </span>
-                        <span className="text-[11px] text-white/40">
-                          {v.tiempo_alquiler} • {v.cantidad_bicicletas}{" "}
-                          {Number(v.cantidad_bicicletas) === 1
-                            ? "Bici"
-                            : "Bicis"}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* MONTO */}
-                    <td className="py-3 px-2 text-white/80">
-                      {Number(v.monto_exacto_bs).toLocaleString("es-VE", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </td>
-
-                    {/* REF */}
-                    <td className="py-3 px-2">
-                      {v.ult_4_ref === "EFECTIVO" ? (
-                        <span className="inline-flex rounded-full text-white/80">
-                          Efectivo
-                        </span>
-                      ) : (
-                        <span className="text-white/80">{v.ult_4_ref}</span>
-                      )}
-                    </td>
-
-                    {/* ESTADO */}
-                    <td className="py-3 px-2">
-                      {v.pagado ? (
-                        <FaCircleCheck
-                          size={16}
-                          className="text-green-400 mx-auto"
-                        />
-                      ) : (
-                        <Clock
-                          size={16}
-                          className="text-red-500 animate-pulse mx-auto"
-                        />
-                      )}
+                {ventas.length === 0 ? (
+                  /* MENSAJE CUANDO NO HAY RESULTADOS */
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="py-3 text-center text-white/40 italic"
+                    >
+                      No hay ventas registradas hoy
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  ventas.slice(0, 5).map((v) => (
+                    <tr
+                      key={v.id}
+                      className="hover:bg-white/5 transition-colors"
+                    >
+                      {/* CLIENTE */}
+                      <td className="py-3 px-2 text-left">
+                        <div className="flex flex-col">
+                          <span className="text-white/90">
+                            {v.nombre_cliente}
+                          </span>
+                          <span className="text-[11px] text-white/40">
+                            {v.tiempo_alquiler} • {v.cantidad_bicicletas}{" "}
+                            {Number(v.cantidad_bicicletas) === 1
+                              ? "Bici"
+                              : "Bicis"}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* MONTO */}
+                      <td className="py-3 px-2 text-white/80">
+                        {Number(v.monto_exacto_bs).toLocaleString("es-VE", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+
+                      {/* REF */}
+                      <td className="py-3 px-2">
+                        {v.ult_4_ref === "EFECTIVO" ? (
+                          <span className="inline-flex rounded-full text-white/80">
+                            Efectivo
+                          </span>
+                        ) : (
+                          <span className="text-white/80">{v.ult_4_ref}</span>
+                        )}
+                      </td>
+
+                      {/* ESTADO */}
+                      <td className="py-3 px-2">
+                        {v.pagado ? (
+                          <FaCircleCheck
+                            size={16}
+                            className="text-green-400 mx-auto"
+                          />
+                        ) : (
+                          <Clock
+                            size={16}
+                            className="text-red-500 animate-pulse mx-auto"
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

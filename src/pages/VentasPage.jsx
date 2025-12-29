@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/client";
 import Navbar from "../components/Navbar";
-import VentaCard from "../components/VentaCard"; 
+import VentaCard from "../components/VentaCard";
 import NumberFlow from "@number-flow/react"; // Asegúrate de tener esto instalado
 
 import {
@@ -17,15 +17,17 @@ import {
   Bike,
 } from "lucide-react";
 import { CircularLoading } from "respinner";
+import SearchForm from "../components/SearchForm";
+import VentaCardSkeleton from "../components/VentaCardSkeleton";
 
 // Placeholder para el logo BDV si no lo tienes importado globalmente
-const bdvLogo = "/bdv-logo.webp"; 
+const bdvLogo = "/bdv-logo.webp";
 
 const PAGE_SIZE = 10;
 
 export default function VentasPage() {
   const navigate = useNavigate();
-  
+
   // Estados de Datos
   const [ventas, setVentas] = useState([]);
   const [stats, setStats] = useState({
@@ -36,7 +38,7 @@ export default function VentasPage() {
     pendienteCobrar: 0,
     bicisHoy: 0,
   });
-  
+
   // Estados de UI y Filtros
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -94,7 +96,9 @@ export default function VentasPage() {
     // Seleccionamos solo las columnas necesarias para calcular sumas (optimización)
     let query = supabase
       .from("ventas-biciaventuras")
-      .select("monto_exacto_bs, tasa_bcv, pagado, ult_4_ref, metodo_pago, cantidad_bicicletas");
+      .select(
+        "monto_exacto_bs, tasa_bcv, pagado, ult_4_ref, metodo_pago, cantidad_bicicletas"
+      );
 
     // Aplicar EXACTAMENTE los mismos filtros que arriba
     if (desde) query = query.gte("created_at", desde);
@@ -113,8 +117,11 @@ export default function VentasPage() {
       const ventasPendientes = data.filter((v) => !v.pagado);
 
       // Cálculos
-      const totalBs = ventasConfirmadas.reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
-      
+      const totalBs = ventasConfirmadas.reduce(
+        (acc, v) => acc + Number(v.monto_exacto_bs),
+        0
+      );
+
       const totalUsd = ventasConfirmadas.reduce(
         (acc, v) => acc + Number(v.monto_exacto_bs) / Number(v.tasa_bcv || 1),
         0
@@ -130,12 +137,20 @@ export default function VentasPage() {
         .reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
 
       const efectivoCaja = ventasConfirmadas
-        .filter((v) => v.ult_4_ref === "EFECTIVO" || v.metodo_pago === "EFECTIVO")
+        .filter(
+          (v) => v.ult_4_ref === "EFECTIVO" || v.metodo_pago === "EFECTIVO"
+        )
         .reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
 
-      const pendienteCobrar = ventasPendientes.reduce((acc, v) => acc + Number(v.monto_exacto_bs), 0);
-      
-      const bicisHoy = ventasConfirmadas.reduce((acc, v) => acc + Number(v.cantidad_bicicletas), 0);
+      const pendienteCobrar = ventasPendientes.reduce(
+        (acc, v) => acc + Number(v.monto_exacto_bs),
+        0
+      );
+
+      const bicisHoy = ventasConfirmadas.reduce(
+        (acc, v) => acc + Number(v.cantidad_bicicletas),
+        0
+      );
 
       setStats({
         totalBs,
@@ -151,42 +166,39 @@ export default function VentasPage() {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <div className="min-h-screen text-white pb-20">
+    <div className="min-h-screen text-white">
       <Navbar />
       {/* HEADER FIJO */}
       <div className="pt-20 sticky top-0 z-40 backdrop-blur-xl ">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-white/60 hover:text-primary transition"
+            className="flex items-center gap-2 text-white/60 hover:text-primary transition group"
           >
-            <ArrowLeft size={18} />
-            <span className="">Volver</span>
+            <ChevronLeft
+              size={20}
+              className="group-hover:scale-110 transition-transform duration-200"
+            />
+            <h1 className="text-lg font-bold text-primary uppercase tracking-tight">
+              Historial de Ventas
+            </h1>
           </button>
-          <h1 className="text-lg font-bold text-primary uppercase tracking-tight">
-            Historial de Ventas
-          </h1>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6 animate-fade-in">
-
-                {/* BUSCADOR Y FILTROS */}
+        {/* BUSCADOR Y FILTROS */}
         <div className="bg-white/5 border border-white/10 rounded-3xl p-5 backdrop-blur-md shadow-xl flex flex-col gap-4">
           {/* BARRA DE BÚSQUEDA (Full Width) */}
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary transition-colors duration-300">
-              <Search size={20} />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar cliente, cédula o referencia..."
-              value={search}
-              onChange={(e) => {
-                setPage(1);
-                setSearch(e.target.value);
+            <SearchForm
+              loading={loading}
+              search={search}
+              setSearch={(value) => {
+                setPage(1); // Mantenemos la lógica de resetear página al escribir
+                setSearch(value);
               }}
-              className="w-full bg-black/20 border border-white/10 rounded-2xl pl-11 pr-4 h-14 text-base text-white placeholder:text-white/30 focus:border-primary/50 focus:bg-black/40 focus:ring-1 focus:ring-primary/20 transition-all outline-none"
+              handleSearch={fetchData} // Permite buscar con ENTER
             />
           </div>
 
@@ -231,9 +243,9 @@ export default function VentasPage() {
             </div>
           </div>
         </div>
-        
+
         {/* --- GRID DE ESTADÍSTICAS (Actualizado con filtros) --- */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3">
           {/* 1. TOTAL GENERADO (Grande) */}
           <div className="col-span-2 bg-linear-to-r from-primary/20 to-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between backdrop-blur-sm relative overflow-hidden">
             <div className="relative z-10">
@@ -372,14 +384,15 @@ export default function VentasPage() {
           </div>
         </div>
 
-
-
         {/* LISTADO DE VENTAS */}
         <div className="space-y-3">
           {loading ? (
-            <div className="min-h-screen flex items-center justify-center text-primary gap-2">
-              <CircularLoading color="#00ff7f" size={80} />
-            </div>
+            // Muestra 5 skeletons mientras carga
+            <>
+              {[...Array(10)].map((_, i) => (
+                <VentaCardSkeleton key={i} />
+              ))}
+            </>
           ) : (
             ventas.map((v) => (
               <VentaCard
@@ -392,28 +405,53 @@ export default function VentasPage() {
           )}
         </div>
 
-        {/* PAGINACIÓN */}
-        <div className="flex justify-center items-center gap-6 pt-4 pb-8">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="p-3 rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-20 transition shadow-sm border border-white/5"
-          >
-            <ChevronLeft size={20} />
-          </button>
+        {/* PAGINACIÓN MEJORADA */}
+        <div className="flex justify-center mb-6 pt-2">
+          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-xl border border-white/10 rounded-full px-2 py-2 shadow-2xl">
+            {/* Botón Anterior */}
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className={`
+                h-10 w-10 flex items-center justify-center rounded-full border border-white/5 transition-all duration-300
+                ${
+                  page === 1
+                    ? "opacity-30 cursor-not-allowed bg-transparent"
+                    : "bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/30 active:scale-90"
+                }
+              `}
+            >
+              <ChevronLeft size={18} />
+            </button>
 
-          <span className="text-xs font-bold text-white/40 uppercase tracking-widest">
-            Página <span className="text-white">{page}</span> /{" "}
-            {totalPages || 1}
-          </span>
+            {/* Texto Central */}
+            <div className="flex flex-col items-center px-2">
+              <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-none mb-0.5">
+                Página
+              </span>
+              <div className="flex items-baseline gap-1 text-sm font-medium text-white/60">
+                <span className="text-white font-bold text-lg">{page}</span>
+                <span className="opacity-40">/</span>
+                <span>{totalPages || 1}</span>
+              </div>
+            </div>
 
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className="p-3 rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-20 transition shadow-sm border border-white/5"
-          >
-            <ChevronRight size={20} />
-          </button>
+            {/* Botón Siguiente */}
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className={`
+                h-10 w-10 flex items-center justify-center rounded-full border border-white/5 transition-all duration-300
+                ${
+                  page >= totalPages
+                    ? "opacity-30 cursor-not-allowed bg-transparent"
+                    : "bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/30 active:scale-90"
+                }
+              `}
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
