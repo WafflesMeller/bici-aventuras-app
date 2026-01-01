@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { supabase } from '../supabase/client.js';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, LogOut, LayoutDashboard, Camera, Bike } from 'lucide-react';
+import { Wallet, LogOut, LayoutDashboard, Camera, Bike, Cog } from 'lucide-react';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ useEffect(() => {
   if (location.pathname === "/cobro") setActiveTab("cobro");
   if (location.pathname === "/escanear") setActiveTab("escanear");
   if (location.pathname === "/bicis") setActiveTab("bicis");
+  if (location.pathname === "/configuracion") setActiveTab("configuracion");
 }, [location.pathname]);
 
 
@@ -36,6 +37,7 @@ useEffect(() => {
     { key: 'cobro', label: 'Cobrar', icon: <Wallet size={25} /> },
     { key: 'bicis', label: 'Alquiler', icon: <Bike size={25} /> },
     { key: 'escanear', label: 'Escanear', icon: <Camera size={25} /> },
+    { key: 'configuracion', label: 'Configuración', icon: <Cog size={25} /> },
   ];
 
   const toggleMobile = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -52,6 +54,7 @@ useEffect(() => {
     if (tab === "cobro") navigate("/cobro");
     if (tab === "escanear") navigate("/escanear");
     if (tab === "bicis") navigate("/bicis");
+    if (tab === "configuracion") navigate("/configuracion");
   };
 
   const handleLogout = async () => {

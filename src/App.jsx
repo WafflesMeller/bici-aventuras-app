@@ -10,6 +10,8 @@ import Dashboard from './pages/Dashboard';
 import Cobro from './pages/Cobro';
 import VentasPage from './pages/VentasPage';
 import Bicis from './pages/Bicis';
+import WhatsAppPage from './pages/WhatsAppPage';
+import ConfigPage from './pages/ConfigPage';
 
 // import AdminPanel from "./pages/AdminPanel";
 function App() {
@@ -32,6 +34,8 @@ function App() {
             <Route path="/ventas" element={<VentasPage />} />
             <Route path="/escanear" element={<EscaneoPago />} />
             <Route path="/bicis" element={<Bicis />} />
+            <Route path="/whatsapp" element={<WhatsAppPage />} />
+            <Route path="/configuracion" element={<ConfigPage />} />
 
             {/* Si intentan entrar a cualquier otra, redirigir a dashboard o 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -230,7 +230,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="px-4 max-w-xl mx-auto">
+      <div className="px-4 mt-2 max-w-xl mx-auto">
         <PriceCards />
         {/* --- GRID DE TARJETAS NUEVO --- */}
         <div className="grid grid-cols-2 gap-3 mb-6">
