@@ -1,4 +1,4 @@
-import React, { useState , useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import QRCode from "react-qr-code";
@@ -7,11 +7,11 @@ import {
   QrCode,
   Loader2,
   CheckCircle2,
-  AlertCircle,
-  RefreshCw,
   LogOut,
   Smartphone,
+  ChevronLeft,
 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 const API_URL = "https://api-whatsapp-bici-aventuras.onrender.com";
 export default function WhatsappPage() {
@@ -19,26 +19,25 @@ export default function WhatsappPage() {
 
   // --- ESTADO DE PRUEBA (CAMBIA ESTO MANUALMENTE PARA VER LOS DISEÑOS) ---
   // Opciones: "disconnected", "connecting", "connected"
- const [status, setStatus] = useState("connecting"); // Empezamos conectando para verificar
-  const [qrCode, setQrCode] = useState(null);         // Aquí guardaremos el string del QR
+  const [status, setStatus] = useState("connecting"); // Empezamos conectando para verificar
+  const [qrCode, setQrCode] = useState(null); // Aquí guardaremos el string del QR
   const [loadingAction, setLoadingAction] = useState(false); // Para el spinner del botón salir
 
-// 1. POLLING: Consultar al backend cada 3 segundos
+  // 1. POLLING: Consultar al backend cada 3 segundos
   useEffect(() => {
     const checkStatus = async () => {
       try {
         const res = await fetch(`${API_URL}/status`);
         const data = await res.json();
-        
+
         // Si el backend dice desconectado pero no mandó QR aún, mantenemos "connecting" visualmente
-        if (data.status === 'disconnected' && !data.qr) {
-             setStatus('connecting'); 
+        if (data.status === "disconnected" && !data.qr) {
+          setStatus("connecting");
         } else {
-             setStatus(data.status);
+          setStatus(data.status);
         }
 
         if (data.qr) setQrCode(data.qr);
-        
       } catch (error) {
         console.error("Error backend:", error);
         setStatus("connecting"); // Si falla, asumimos que está intentando conectar
@@ -54,7 +53,7 @@ export default function WhatsappPage() {
   // 2. LOGOUT: Función para cerrar sesión real
   const handleLogout = async () => {
     if (!window.confirm("¿Seguro que quieres desconectar el Bot?")) return;
-    
+
     setLoadingAction(true);
     try {
       await fetch(`${API_URL}/logout`, { method: "POST" });
@@ -66,7 +65,6 @@ export default function WhatsappPage() {
       setLoadingAction(false);
     }
   };
-
 
   // Configuración visual según el estado
   const getStatusUI = () => {
@@ -104,28 +102,29 @@ export default function WhatsappPage() {
   const ui = getStatusUI();
 
   return (
-    <div className="min-h-screen text-white pb-20">
+    <div className="min-h-screen text-white">
       <Navbar />
 
       {/* HEADER CON BOTÓN VOLVER */}
-      <div className="pt-20 sticky top-0 z-40 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-xl mx-auto px-4 py-4 flex items-center gap-4">
+      <div className="pt-20 sticky top-0 z-40 backdrop-blur-xl ">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-white/60 hover:text-primary transition"
+            className="flex items-center gap-2  hover:text-primary transition group"
           >
-            <ArrowLeft size={18} />
-            <span className="">Volver</span>
+            <ChevronLeft
+              size={20}
+              className="group-hover:scale-110 transition-transform duration-200"
+            />
+            <FaWhatsapp size={20} className="text-primary" />
+            <h1 className="text-lg font-bold text-primary uppercase tracking-tight">
+              Conexión WhatsApp
+            </h1>
           </button>
-          <h1 className="text-lg font-bold text-white uppercase tracking-tight flex items-center gap-2">
-            <Smartphone size={18} className="text-green-500" />
-            Conexión WhatsApp
-          </h1>
         </div>
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-6 animate-fade-in mt-4">
-        
         {/* TARJETA DE ESTADO */}
         <div
           className={`relative overflow-hidden rounded-3xl border backdrop-blur-md p-6 transition-all duration-500
@@ -133,15 +132,17 @@ export default function WhatsappPage() {
           `}
         >
           <div className="flex flex-col items-center text-center gap-3 relative z-10">
-            <div className={`p-4 rounded-full bg-black/20 backdrop-blur-sm border border-white/5 shadow-lg`}>
+            <div
+              className={`p-4 rounded-full bg-black/20 backdrop-blur-sm border border-white/5 shadow-lg`}
+            >
               {ui.icon}
             </div>
-            
+
             <div>
               <h2 className={`text-xl font-bold ${ui.color} mb-1`}>
                 {ui.title}
               </h2>
-              <p className="text-sm text-white/60 max-w-[250px] mx-auto leading-relaxed">
+              <p className="text-sm text-white/60 max-w-62.5 mx-auto leading-relaxed">
                 {ui.desc}
               </p>
             </div>
@@ -150,21 +151,24 @@ export default function WhatsappPage() {
 
         {/* ÁREA DEL QR O ACCIONES */}
         <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-xl flex flex-col items-center justify-center min-h-[350px]">
-          
           {/* CASO 1: CONECTADO */}
           {status === "connected" && (
             <div className="text-center space-y-6 animate-fade-in">
               <div className="w-48 h-48 mx-auto bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/30 shadow-[0_0_40px_rgba(34,197,94,0.2)]">
                 <Smartphone size={80} className="text-green-400" />
               </div>
-              
-              <button 
+
+              <button
                 onClick={handleLogout} // <--- Usamos la función real
                 disabled={loadingAction} // <--- Deshabilitamos si está cargando
                 className="w-full py-3 px-6 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 {/* Mostramos spinner si está cargando */}
-                {loadingAction ? <Loader2 size={18} className="animate-spin"/> : <LogOut size={18} />}
+                {loadingAction ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <LogOut size={18} />
+                )}
                 {loadingAction ? "Desconectando..." : "Cerrar Sesión"}
               </button>
             </div>
@@ -175,7 +179,7 @@ export default function WhatsappPage() {
             <div className="text-center space-y-4 animate-fade-in">
               <div className="relative">
                 <div className="w-48 h-48 rounded-2xl border-2 border-white/10 flex items-center justify-center bg-black/40">
-                   <Loader2 size={60} className="text-primary animate-spin" />
+                  <Loader2 size={60} className="text-primary animate-spin" />
                 </div>
                 {/* Efecto de escaneo */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-primary/50 shadow-[0_0_15px_#00ff7f] animate-[scan_2s_ease-in-out_infinite]" />
@@ -189,20 +193,19 @@ export default function WhatsappPage() {
           {/* CASO 3: DESCONECTADO (Muestra QR REAL) */}
           {status === "disconnected" && qrCode && (
             <div className="text-center space-y-6 animate-fade-in w-full">
-              
               {/* Contenedor del QR */}
               <div className="relative w-fit mx-auto bg-white p-4 rounded-xl shadow-2xl">
                 <div className="bg-white rounded-lg overflow-hidden">
-                    {/* COMPONENTE QR REAL */}
-                    <QRCode 
-                        value={qrCode}
-                        size={200}
-                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                        viewBox={`0 0 256 256`}
-                    />
+                  {/* COMPONENTE QR REAL */}
+                  <QRCode
+                    value={qrCode}
+                    size={200}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                  />
                 </div>
               </div>
-              
+
               <p className="text-sm text-white/50">
                 El código cambiará automáticamente si expira.
               </p>
@@ -210,46 +213,24 @@ export default function WhatsappPage() {
           )}
 
           {/* CASO 3B: DESCONECTADO PERO SIN QR AUN (Esperando backend) */}
-           {status === "disconnected" && !qrCode && (
-             <div className="text-center space-y-4">
-                <Loader2 size={40} className="text-white/30 animate-spin mx-auto" />
-                <p className="text-sm text-white/40">Generando código QR...</p>
-             </div>
-           )}
-
+          {status === "disconnected" && !qrCode && (
+            <div className="text-center space-y-4">
+              <Loader2
+                size={40}
+                className="text-white/30 animate-spin mx-auto"
+              />
+              <p className="text-sm text-white/40">Generando código QR...</p>
+            </div>
+          )}
         </div>
 
         {/* FOOTER INFORMATIVO */}
         <div className="text-center">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">
-                BiciAventuras Bot v1.0
-            </p>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">
+            BiciAventuras Bot v1.0
+          </p>
         </div>
-
       </div>
-
-      {/* Estilos para la animación de escaneo */}
-      <style>{`
-        @keyframes scan {
-          0% { top: 0%; opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { top: 100%; opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }
-
-// Icono simple de mensaje para el centro del QR
-const MessageIcon = ({ size }) => (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="white" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM17 13H7V11H17V13Z" />
-    </svg>
-);
