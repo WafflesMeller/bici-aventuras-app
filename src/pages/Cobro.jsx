@@ -243,7 +243,7 @@ function Paso1({ onNext, defaultValues, tasa }) {
     10: 2,
     20: 3,
     30: 5,
-    60: 10,
+    60: 9,
   };
 
   const precioUsd = tarifas[time] || 0;
