@@ -15,7 +15,6 @@ export default function VincularBot() {
   useEffect(() => {
     // URL exacta y configuración para evitar bloqueos
     const socket = io(SOCKET_URL, {
-      path: '/socket.io/', // Debe coincidir con la configuración de Nginx
       transports: ['polling'], // <--- TRUCO: Forzamos HTTP. Es más lento pero INFALIBLE.
       withCredentials: true
     });
