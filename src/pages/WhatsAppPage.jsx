@@ -1,235 +1,131 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import QRCode from "react-qr-code";
-import {
-  ArrowLeft,
-  QrCode,
-  Loader2,
-  CheckCircle2,
-  LogOut,
-  Smartphone,
-  ChevronLeft,
-} from "lucide-react";
-import { FaWhatsapp } from "react-icons/fa";
+import React, { useState, useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
+import io from 'socket.io-client';
+import { Loader2, CheckCircle, XCircle, Smartphone, Wifi } from 'lucide-react';
+import Navbar from '../components/Navbar'; // Asegúrate que esta ruta sea correcta para tu proyecto
 
-const API_URL = "https://api-whatsapp-bici-aventuras.onrender.com";
-export default function WhatsappPage() {
-  const navigate = useNavigate();
+// URL exacta de tu VPS
+const SOCKET_URL = 'https://api.whatsapp-api-check.xyz';
 
-  // --- ESTADO DE PRUEBA (CAMBIA ESTO MANUALMENTE PARA VER LOS DISEÑOS) ---
-  // Opciones: "disconnected", "connecting", "connected"
-  const [status, setStatus] = useState("connecting"); // Empezamos conectando para verificar
-  const [qrCode, setQrCode] = useState(null); // Aquí guardaremos el string del QR
-  const [loadingAction, setLoadingAction] = useState(false); // Para el spinner del botón salir
+export default function VincularBot() {
+  const [qrCode, setQrCode] = useState('');
+  // Estados posibles: 'connecting', 'scan_needed', 'connected', 'disconnected'
+  const [status, setStatus] = useState('connecting'); 
 
-  // 1. POLLING: Consultar al backend cada 3 segundos
   useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const res = await fetch(`${API_URL}/status`);
-        const data = await res.json();
+    // Conexión al Socket
+    const newSocket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
 
-        // Si el backend dice desconectado pero no mandó QR aún, mantenemos "connecting" visualmente
-        if (data.status === "disconnected" && !data.qr) {
-          setStatus("connecting");
-        } else {
-          setStatus(data.status);
-        }
+    // Eventos
+    newSocket.on('connect', () => {
+      console.log('Conectado al servidor de Sockets');
+    });
 
-        if (data.qr) setQrCode(data.qr);
-      } catch (error) {
-        console.error("Error backend:", error);
-        setStatus("connecting"); // Si falla, asumimos que está intentando conectar
+    newSocket.on('qr', (qr) => {
+      console.log('QR Recibido');
+      setQrCode(qr);
+      setStatus('scan_needed');
+    });
+
+    newSocket.on('status', (newStatus) => {
+      console.log('Cambio de estado:', newStatus);
+      setStatus(newStatus);
+      if (newStatus === 'connected') {
+        setQrCode(''); // Borramos el QR si ya se conectó
       }
-    };
+    });
 
-    checkStatus(); // Ejecutar ya
-    const interval = setInterval(checkStatus, 3000); // Repetir cada 3s
-
-    return () => clearInterval(interval); // Limpieza al salir
+    // Limpieza al salir de la pantalla
+    return () => newSocket.disconnect();
   }, []);
 
-  // 2. LOGOUT: Función para cerrar sesión real
-  const handleLogout = async () => {
-    if (!window.confirm("¿Seguro que quieres desconectar el Bot?")) return;
-
-    setLoadingAction(true);
-    try {
-      await fetch(`${API_URL}/logout`, { method: "POST" });
-      setStatus("disconnected");
-      setQrCode(null);
-    } catch (error) {
-      alert("Error al cerrar sesión");
-    } finally {
-      setLoadingAction(false);
-    }
-  };
-
-  // Configuración visual según el estado
-  const getStatusUI = () => {
-    switch (status) {
-      case "connected":
-        return {
-          color: "text-green-400",
-          bgColor: "bg-green-500/20",
-          borderColor: "border-green-500/50",
-          title: "Bot Conectado",
-          desc: "El sistema está listo para enviar mensajes.",
-          icon: <CheckCircle2 size={32} className="text-green-400" />,
-        };
-      case "connecting":
-        return {
-          color: "text-yellow-400",
-          bgColor: "bg-yellow-500/10",
-          borderColor: "border-yellow-500/30",
-          title: "Estableciendo conexión...",
-          desc: "Por favor espera mientras conectamos con WhatsApp.",
-          icon: <Loader2 size={32} className="text-yellow-400 animate-spin" />,
-        };
-      default: // disconnected
-        return {
-          color: "text-white",
-          bgColor: "bg-white/5",
-          borderColor: "border-white/10",
-          title: "Escanea el código QR",
-          desc: "Abre WhatsApp > Dispositivos vinculados > Vincular un dispositivo.",
-          icon: <QrCode size={32} className="text-white" />,
-        };
-    }
-  };
-
-  const ui = getStatusUI();
-
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen bg-neutral-900 text-white flex flex-col">
       <Navbar />
-
-      {/* HEADER CON BOTÓN VOLVER */}
-      <div className="pt-20 sticky top-0 z-40 backdrop-blur-xl ">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2  hover:text-primary transition group"
-          >
-            <ChevronLeft
-              size={20}
-              className="group-hover:scale-110 transition-transform duration-200"
-            />
-            <FaWhatsapp size={20} className="text-primary" />
-            <h1 className="text-lg font-bold text-primary uppercase tracking-tight">
-              Conexión WhatsApp
-            </h1>
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto p-4 space-y-6 animate-fade-in mt-4">
-        {/* TARJETA DE ESTADO */}
-        <div
-          className={`relative overflow-hidden rounded-3xl border backdrop-blur-md p-6 transition-all duration-500
-            ${ui.bgColor} ${ui.borderColor}
-          `}
-        >
-          <div className="flex flex-col items-center text-center gap-3 relative z-10">
-            <div
-              className={`p-4 rounded-full bg-black/20 backdrop-blur-sm border border-white/5 shadow-lg`}
-            >
-              {ui.icon}
-            </div>
-
-            <div>
-              <h2 className={`text-xl font-bold ${ui.color} mb-1`}>
-                {ui.title}
-              </h2>
-              <p className="text-sm text-white/60 max-w-62.5 mx-auto leading-relaxed">
-                {ui.desc}
-              </p>
+      
+      <div className="flex-1 flex flex-col items-center justify-center p-6 pt-24 animate-fade-in">
+        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center backdrop-blur-md shadow-2xl">
+          
+          <div className="flex justify-center mb-6">
+            <div className="bg-primary/20 p-4 rounded-full">
+              <Wifi className="text-primary w-8 h-8 animate-pulse" />
             </div>
           </div>
-        </div>
 
-        {/* ÁREA DEL QR O ACCIONES */}
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-xl flex flex-col items-center justify-center min-h-[350px]">
-          {/* CASO 1: CONECTADO */}
-          {status === "connected" && (
-            <div className="text-center space-y-6 animate-fade-in">
-              <div className="w-48 h-48 mx-auto bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/30 shadow-[0_0_40px_rgba(34,197,94,0.2)]">
-                <Smartphone size={80} className="text-green-400" />
-              </div>
-
-              <button
-                onClick={handleLogout} // <--- Usamos la función real
-                disabled={loadingAction} // <--- Deshabilitamos si está cargando
-                className="w-full py-3 px-6 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                {/* Mostramos spinner si está cargando */}
-                {loadingAction ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <LogOut size={18} />
-                )}
-                {loadingAction ? "Desconectando..." : "Cerrar Sesión"}
-              </button>
-            </div>
-          )}
-
-          {/* CASO 2: CONECTANDO (Spinner Grande) */}
-          {status === "connecting" && (
-            <div className="text-center space-y-4 animate-fade-in">
-              <div className="relative">
-                <div className="w-48 h-48 rounded-2xl border-2 border-white/10 flex items-center justify-center bg-black/40">
-                  <Loader2 size={60} className="text-primary animate-spin" />
-                </div>
-                {/* Efecto de escaneo */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-primary/50 shadow-[0_0_15px_#00ff7f] animate-[scan_2s_ease-in-out_infinite]" />
-              </div>
-              <p className="text-xs font-mono text-white/40 uppercase tracking-widest animate-pulse">
-                Sincronizando...
-              </p>
-            </div>
-          )}
-
-          {/* CASO 3: DESCONECTADO (Muestra QR REAL) */}
-          {status === "disconnected" && qrCode && (
-            <div className="text-center space-y-6 animate-fade-in w-full">
-              {/* Contenedor del QR */}
-              <div className="relative w-fit mx-auto bg-white p-4 rounded-xl shadow-2xl">
-                <div className="bg-white rounded-lg overflow-hidden">
-                  {/* COMPONENTE QR REAL */}
-                  <QRCode
-                    value={qrCode}
-                    size={200}
-                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                    viewBox={`0 0 256 256`}
-                  />
-                </div>
-              </div>
-
-              <p className="text-sm text-white/50">
-                El código cambiará automáticamente si expira.
-              </p>
-            </div>
-          )}
-
-          {/* CASO 3B: DESCONECTADO PERO SIN QR AUN (Esperando backend) */}
-          {status === "disconnected" && !qrCode && (
-            <div className="text-center space-y-4">
-              <Loader2
-                size={40}
-                className="text-white/30 animate-spin mx-auto"
-              />
-              <p className="text-sm text-white/40">Generando código QR...</p>
-            </div>
-          )}
-        </div>
-
-        {/* FOOTER INFORMATIVO */}
-        <div className="text-center">
-          <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">
-            BiciAventuras Bot v1.0
+          <h2 className="text-3xl font-black text-primary mb-2 italic uppercase tracking-tighter">
+            Vincular Bot
+          </h2>
+          <p className="text-sm text-gray-400 mb-8 font-medium">
+            Sistema de mensajería automática WhatsApp
           </p>
+
+          {/* --- ESTADO: CARGANDO INICIAL --- */}
+          {status === 'connecting' && (
+            <div className="py-12 flex flex-col items-center">
+              <Loader2 className="animate-spin text-primary mb-4" size={48} />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Conectando al servidor...</p>
+            </div>
+          )}
+
+          {/* --- ESTADO: YA CONECTADO --- */}
+          {status === 'connected' && (
+            <div className="py-8 flex flex-col items-center animate-scale-in">
+              <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-green-500/50 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                <CheckCircle className="text-green-500 w-12 h-12" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">¡Bot Operativo!</h3>
+              <p className="text-sm text-gray-400 max-w-[200px]">
+                El sistema está vinculado y listo para enviar mensajes.
+              </p>
+            </div>
+          )}
+
+          {/* --- ESTADO: ESCANEAR QR --- */}
+          {status === 'scan_needed' && qrCode && (
+            <div className="flex flex-col items-center animate-slide-up">
+              <div className="bg-white p-4 rounded-2xl shadow-2xl shadow-primary/20 mb-6 group transition-transform hover:scale-105 duration-300">
+                <QRCodeCanvas 
+                  value={qrCode} 
+                  size={240} 
+                  level={"H"} // Nivel de corrección de error alto
+                  bgColor={"#ffffff"}
+                  fgColor={"#000000"}
+                  imageSettings={{
+                    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1200px-WhatsApp.svg.png",
+                    x: undefined,
+                    y: undefined,
+                    height: 40,
+                    width: 40,
+                    excavate: true,
+                  }}
+                />
+              </div>
+              
+              <div className="flex items-center gap-3 text-xs font-bold bg-white/10 px-6 py-3 rounded-full text-primary border border-white/5">
+                <Smartphone size={16} />
+                <span>WHATSAPP &gt; VINCULAR DISPOSITIVO</span>
+              </div>
+            </div>
+          )}
+
+          {/* --- ESTADO: DESCONECTADO --- */}
+          {status === 'disconnected' && (
+            <div className="py-8 flex flex-col items-center">
+               <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-4 border border-red-500/30">
+                <XCircle className="text-red-500 w-10 h-10" />
+              </div>
+              <p className="text-red-400 font-bold text-lg">Sesión Cerrada</p>
+              <p className="text-xs text-gray-500 mt-2">Esperando nuevo QR...</p>
+            </div>
+          )}
+
         </div>
+        
+        <p className="mt-8 text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold">
+          Powered by Node.js & Socket.io
+        </p>
       </div>
     </div>
   );
