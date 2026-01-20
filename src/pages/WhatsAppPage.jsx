@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar'; // Asegúrate que esta ruta sea corre
 // URL exacta de tu VPS
 const SOCKET_URL = 'https://api.whatsapp-api-check.xyz';
 
+
 export default function VincularBot() {
   const [qrCode, setQrCode] = useState('');
   // Estados posibles: 'connecting', 'scan_needed', 'connected', 'disconnected'
@@ -15,7 +16,8 @@ export default function VincularBot() {
   useEffect(() => {
     // Conexión al Socket
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      withCredentials: true  // <--- AGREGA ESTO
     });
 
     // Eventos
