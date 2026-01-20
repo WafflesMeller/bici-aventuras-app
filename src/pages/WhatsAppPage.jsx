@@ -14,11 +14,11 @@ export default function VincularBot() {
 
   useEffect(() => {
     // URL exacta y configuración para evitar bloqueos
-    const socket = io(SOCKET_URL, {
-      transports: ['polling'], // <--- TRUCO: Forzamos HTTP. Es más lento pero INFALIBLE.
+const socket = io('https://api.whatsapp-api-check.xyz', {
+      transports: ['polling'], // Empezamos con polling para asegurar conexión
       withCredentials: true
+      // ¡BORRA LA LÍNEA DE PATH AQUÍ TAMBIÉN!
     });
-
     // --- EVENTOS DEL SOCKET ---
 
     socket.on('connect', () => {
