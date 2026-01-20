@@ -2,45 +2,50 @@ import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import io from 'socket.io-client';
 import { Loader2, CheckCircle, XCircle, Smartphone, Wifi } from 'lucide-react';
-import Navbar from '../components/Navbar'; // Asegúrate que esta ruta sea correcta para tu proyecto
+import Navbar from '../components/Navbar'; // Asegúrate de que esta ruta sea correcta
 
 // URL exacta de tu VPS
 const SOCKET_URL = 'https://api.whatsapp-api-check.xyz';
-
 
 export default function VincularBot() {
   const [qrCode, setQrCode] = useState('');
   // Estados posibles: 'connecting', 'scan_needed', 'connected', 'disconnected'
   const [status, setStatus] = useState('connecting'); 
 
-useEffect(() => {
-    const newSocket = io(SOCKET_URL, {
-      path: '/socket.io/', // Coincide con Nginx
-      transports: ['polling', 'websocket'], // Prueba HTTP primero, luego WS
+  useEffect(() => {
+    // URL exacta y configuración para evitar bloqueos
+    const socket = io(SOCKET_URL, {
+      path: '/socket.io/', // Debe coincidir con la configuración de Nginx
+      transports: ['polling'], // <--- TRUCO: Forzamos HTTP. Es más lento pero INFALIBLE.
       withCredentials: true
     });
-    // Eventos
-    newSocket.on('connect', () => {
-      console.log('Conectado al servidor de Sockets');
+
+    // --- EVENTOS DEL SOCKET ---
+
+    socket.on('connect', () => {
+      console.log('¡Conectado al servidor!');
     });
 
-    newSocket.on('qr', (qr) => {
-      console.log('QR Recibido');
+    socket.on('qr', (qr) => {
+      console.log('QR recibido');
       setQrCode(qr);
       setStatus('scan_needed');
     });
 
-    newSocket.on('status', (newStatus) => {
-      console.log('Cambio de estado:', newStatus);
-      setStatus(newStatus);
-      if (newStatus === 'connected') {
-        setQrCode(''); // Borramos el QR si ya se conectó
+    socket.on('status', (s) => {
+      console.log('Estado recibido:', s);
+      setStatus(s);
+      if(s === 'connected') {
+        setQrCode(''); // Limpiamos el QR si ya se conectó
       }
     });
 
-    // Limpieza al salir de la pantalla
-    return () => newSocket.disconnect();
-  }, []);
+    // Limpieza al salir de la pantalla (desmontar componente)
+    return () => {
+      console.log('Desconectando socket...');
+      socket.disconnect();
+    };
+  }, []); // El array vacío [] asegura que esto solo corra una vez al entrar
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white flex flex-col">
