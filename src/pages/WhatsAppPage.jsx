@@ -1,134 +1,164 @@
-import React, { useState, useEffect } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
-import io from 'socket.io-client';
-import { Loader2, CheckCircle, XCircle, Smartphone, Wifi } from 'lucide-react';
-import Navbar from '../components/Navbar'; // Asegúrate que esta ruta sea correcta para tu proyecto
+const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const qrcode = require('qrcode-terminal');
+const pino = require('pino');
+const cors = require('cors');
+const multer = require('multer');
 
-// URL exacta de tu VPS
-const SOCKET_URL = 'https://api.whatsapp-api-check.xyz';
+const app = express();
+const server = http.createServer(app);
 
+/* =======================
+   CONFIGURACIÓN CORS (BLINDADA)
+======================= */
+const allowedOrigins = [
+  'https://bici-aventuras-app.vercel.app',
+  'https://api.whatsapp-api-check.xyz',
+  'http://localhost:5173'
+];
 
-export default function VincularBot() {
-  const [qrCode, setQrCode] = useState('');
-  // Estados posibles: 'connecting', 'scan_needed', 'connected', 'disconnected'
-  const [status, setStatus] = useState('connecting'); 
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  path: '/socket.io/' // IMPORTANTE PARA NGINX
+});
 
-  useEffect(() => {
-    // Conexión al Socket
-    const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      withCredentials: true  // <--- AGREGA ESTO
-    });
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      return callback(null, true); // MODO PERMISIVO TEMPORAL PARA DESCARTAR ERRORES
+    }
+  },
+  credentials: true
+}));
 
-    // Eventos
-    newSocket.on('connect', () => {
-      console.log('Conectado al servidor de Sockets');
-    });
+app.use(express.json());
+const upload = multer({ storage: multer.memoryStorage() });
 
-    newSocket.on('qr', (qr) => {
-      console.log('QR Recibido');
-      setQrCode(qr);
-      setStatus('scan_needed');
-    });
+/* =======================
+   ESTADO GLOBAL
+======================= */
+let sock = null;
+let isConnecting = false;
+let lastQr = null;
 
-    newSocket.on('status', (newStatus) => {
-      console.log('Cambio de estado:', newStatus);
-      setStatus(newStatus);
-      if (newStatus === 'connected') {
-        setQrCode(''); // Borramos el QR si ya se conectó
-      }
-    });
+/* =======================
+   SOCKET.IO
+======================= */
+io.on('connection', (socket) => {
+  console.log('Cliente conectado ID:', socket.id);
 
-    // Limpieza al salir de la pantalla
-    return () => newSocket.disconnect();
-  }, []);
+  if (sock?.user) {
+    socket.emit('status', 'connected');
+  } else if (lastQr) {
+    socket.emit('qr', lastQr);
+    socket.emit('status', 'scan_needed');
+  } else {
+    socket.emit('status', 'connecting'); // Enviamos connecting si no sabemos nada aún
+  }
+});
 
-  return (
-    <div className="min-h-screen bg-neutral-900 text-white flex flex-col">
-      <Navbar />
+/* =======================
+   WHATSAPP
+======================= */
+async function connectToWhatsApp() {
+  if (isConnecting) return;
+  isConnecting = true;
+
+  const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+
+  sock = makeWASocket({
+    auth: state,
+    printQRInTerminal: true,
+    logger: pino({ level: 'silent' }),
+    browser: ['BiciAventuras', 'Chrome', '1.0.0']
+  });
+
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect, qr } = update;
+
+    if (qr) {
+      lastQr = qr;
+      io.emit('qr', qr);
+      io.emit('status', 'scan_needed');
+      console.log('QR Generado');
+    }
+
+    if (connection === 'open') {
+      console.log('✅ CONEXIÓN EXITOSA');
+      lastQr = null;
+      io.emit('status', 'connected');
+      isConnecting = false;
+    }
+
+    if (connection === 'close') {
+      const code = lastDisconnect?.error?.output?.statusCode;
+      console.log('⚠️ Conexión cerrada. Código:', code);
+      io.emit('status', 'disconnected');
       
-      <div className="flex-1 flex flex-col items-center justify-center p-6 pt-24 animate-fade-in">
-        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-[2rem] p-8 text-center backdrop-blur-md shadow-2xl">
-          
-          <div className="flex justify-center mb-6">
-            <div className="bg-primary/20 p-4 rounded-full">
-              <Wifi className="text-primary w-8 h-8 animate-pulse" />
-            </div>
-          </div>
+      sock = null;
+      isConnecting = false;
+      lastQr = null;
 
-          <h2 className="text-3xl font-black text-primary mb-2 italic uppercase tracking-tighter">
-            Vincular Bot
-          </h2>
-          <p className="text-sm text-gray-400 mb-8 font-medium">
-            Sistema de mensajería automática WhatsApp
-          </p>
+      if (code !== DisconnectReason.loggedOut) {
+        setTimeout(connectToWhatsApp, 5000);
+      } else {
+        connectToWhatsApp();
+      }
+    }
+  });
 
-          {/* --- ESTADO: CARGANDO INICIAL --- */}
-          {status === 'connecting' && (
-            <div className="py-12 flex flex-col items-center">
-              <Loader2 className="animate-spin text-primary mb-4" size={48} />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Conectando al servidor...</p>
-            </div>
-          )}
-
-          {/* --- ESTADO: YA CONECTADO --- */}
-          {status === 'connected' && (
-            <div className="py-8 flex flex-col items-center animate-scale-in">
-              <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-green-500/50 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                <CheckCircle className="text-green-500 w-12 h-12" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-2">¡Bot Operativo!</h3>
-              <p className="text-sm text-gray-400 max-w-[200px]">
-                El sistema está vinculado y listo para enviar mensajes.
-              </p>
-            </div>
-          )}
-
-          {/* --- ESTADO: ESCANEAR QR --- */}
-          {status === 'scan_needed' && qrCode && (
-            <div className="flex flex-col items-center animate-slide-up">
-              <div className="bg-white p-4 rounded-2xl shadow-2xl shadow-primary/20 mb-6 group transition-transform hover:scale-105 duration-300">
-                <QRCodeCanvas 
-                  value={qrCode} 
-                  size={240} 
-                  level={"H"} // Nivel de corrección de error alto
-                  bgColor={"#ffffff"}
-                  fgColor={"#000000"}
-                  imageSettings={{
-                    src: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1200px-WhatsApp.svg.png",
-                    x: undefined,
-                    y: undefined,
-                    height: 40,
-                    width: 40,
-                    excavate: true,
-                  }}
-                />
-              </div>
-              
-              <div className="flex items-center gap-3 text-xs font-bold bg-white/10 px-6 py-3 rounded-full text-primary border border-white/5">
-                <Smartphone size={16} />
-                <span>WHATSAPP &gt; VINCULAR DISPOSITIVO</span>
-              </div>
-            </div>
-          )}
-
-          {/* --- ESTADO: DESCONECTADO --- */}
-          {status === 'disconnected' && (
-            <div className="py-8 flex flex-col items-center">
-               <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-4 border border-red-500/30">
-                <XCircle className="text-red-500 w-10 h-10" />
-              </div>
-              <p className="text-red-400 font-bold text-lg">Sesión Cerrada</p>
-              <p className="text-xs text-gray-500 mt-2">Esperando nuevo QR...</p>
-            </div>
-          )}
-
-        </div>
-        
-        <p className="mt-8 text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold">
-          Powered by Node.js & Socket.io
-        </p>
-      </div>
-    </div>
-  );
+  sock.ev.on('creds.update', saveCreds);
 }
+
+connectToWhatsApp();
+
+/* =======================
+   ENDPOINTS (CORS FIX)
+======================= */
+// Endpoint de estado para polling
+app.get('/status', (req, res) => {
+    res.json({
+        status: sock?.user ? 'connected' : 'disconnected',
+        qr: lastQr
+    });
+});
+
+app.post('/logout', async (req, res) => {
+    if(sock) {
+        await sock.logout();
+        res.json({ok: true});
+    } else {
+        res.status(400).json({error: 'No conectado'});
+    }
+});
+
+app.post('/enviar-mensaje', async (req, res) => {
+  const { numero, mensaje } = req.body;
+  if (!sock) return res.status(503).json({ error: 'Bot desconectado' });
+  
+  try {
+    const id = numero.replace(/\D/g, '') + '@s.whatsapp.net';
+    await sock.sendMessage(id, { text: mensaje });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+/* =======================
+   SERVER
+======================= */
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 SERVIDOR CORRIENDO EN PUERTO ${PORT}`);
+});
