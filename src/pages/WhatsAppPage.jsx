@@ -4,32 +4,28 @@ import io from 'socket.io-client';
 import { Loader2, CheckCircle, XCircle, Smartphone, Wifi } from 'lucide-react';
 import Navbar from '../components/Navbar'; // Asegúrate de que esta ruta sea correcta
 
-// URL exacta de tu VPS
-const SOCKET_URL = 'https://api.whatsapp-api-check.xyz';
 
 export default function VincularBot() {
   const [qrCode, setQrCode] = useState('');
   // Estados posibles: 'connecting', 'scan_needed', 'connected', 'disconnected'
   const [status, setStatus] = useState('connecting'); 
 
-  useEffect(() => {
-    // URL exacta y configuración para evitar bloqueos
-const socket = io('https://api.whatsapp-api-check.xyz', {
-      transports: ['polling'], // Empezamos con polling para asegurar conexión
+useEffect(() => {
+    // URL limpia, sin paths raros
+    const socket = io('https://api.whatsapp-api-check.xyz', {
+      transports: ['polling'], // Polling primero para asegurar conexión
       withCredentials: true
-      // ¡BORRA LA LÍNEA DE PATH AQUÍ TAMBIÉN!
-    });
-    // --- EVENTOS DEL SOCKET ---
-
-    socket.on('connect', () => {
-      console.log('¡Conectado al servidor!');
     });
 
+    socket.on('connect', () => console.log('✅ Conectado'));
+    
     socket.on('qr', (qr) => {
-      console.log('QR recibido');
+      console.log('QR Recibido');
       setQrCode(qr);
       setStatus('scan_needed');
     });
+
+    // ... resto del código ...
 
     socket.on('status', (s) => {
       console.log('Estado recibido:', s);
