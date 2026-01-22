@@ -762,7 +762,7 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
 
     try {
       const response = await fetch(
-        "https://api.whatsapp-api-check.xyz/enviar-mensaje",
+        "http://bot-api-biciaventuras.duckdns.org/enviar-mensaje",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -14,7 +14,7 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 
 // URL DE TU VPS
-const API_URL = "https://api.whatsapp-api-check.xyz";
+const API_URL = "http://bot-api-biciaventuras.duckdns.org";
 
 export default function WhatsappPage() {
   const navigate = useNavigate();
