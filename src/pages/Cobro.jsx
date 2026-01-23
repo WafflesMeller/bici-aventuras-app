@@ -727,6 +727,7 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
     maximumFractionDigits: 2,
   });
 
+  // --- FUNCIÓN PARA BDV (CON LINK) ---
   const handleBotConnect = async () => {
     setEnvioEstado("enviando");
 
@@ -749,7 +750,7 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
     // 5. Mensaje de WhatsApp
     const mensajeFormateado =
       `🚲 *HOLA, ${nombreFormateado.toUpperCase()}!*\n` +
-      `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
+      `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
       `Aquí tienes los detalles de tu alquiler en *Biciaventuras*:\n\n` +
       `🚲 *Bicis:* ${defaultValues.cantidad}\n` +
       `⏱️ *Tiempo:* ${defaultValues.tiempo} min\n` +
@@ -758,7 +759,66 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
       `* 👉 [ CLICK PARA PAGAR ] 👈       *\n` +
       `*╚════════════════════╝*\n` +
       `${urlPagoMovil}\n\n` +
-      `📢 _Una vez realizado el pago, envía el comprobante por este chat para activar tu tiempo._`;
+      `⚠️ *IMPORTANTE:*\n` +
+      `Por favor realiza el pago y *envía el capture (comprobante) por este mismo chat* para verificar.\n\n` +
+      `🛡️ *SEGURIDAD DEL MENOR:*\n` +
+      `El niño debe presentarse con su representante o alguien mayor de edad con la referencia para la verificación del pago. En caso de mandar al niño solo, podemos llamar para verificar los datos del mismo por seguridad del menor de edad.`;
+
+    try {
+      const response = await fetch(
+        "https://bot-api-biciaventuras.duckdns.org/enviar-mensaje",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            numero: telDestino,
+            mensaje: mensajeFormateado,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        setEnvioEstado("enviado");
+        setTimeout(() => setEnvioEstado("idle"), 3500);
+      } else {
+        setEnvioEstado("error");
+      }
+    } catch (error) {
+      console.error("Error en la conexión:", error);
+      setEnvioEstado("error");
+    }
+  };
+
+  // --- NUEVA FUNCIÓN PARA OTROS BANCOS (DATOS ESCRITOS + MENSAJE SEGURIDAD) ---
+  const handleBotConnectOtros = async () => {
+    setEnvioEstado("enviando");
+
+    // Formateo de Nombre
+    const n = defaultValues.nombre.trim();
+    const nombreFormateado =
+      n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+
+    // Formateo de Teléfono
+    let telDestino = defaultValues.telefono.replace(/\D/g, "");
+    if (telDestino.startsWith("0")) {
+      telDestino = "58" + telDestino.substring(1);
+    } else if (/^(412|422|416|426|424|414)/.test(telDestino)) {
+      telDestino = "58" + telDestino;
+    }
+
+    // Mensaje de WhatsApp con datos escritos y advertencia de seguridad
+    const mensajeFormateado =
+      `🚲 *HOLA, ${nombreFormateado.toUpperCase()}!*\n` +
+      `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
+      `Aquí tienes los datos para realizar el Pago Móvil:\n\n` +
+      `🏦 *Banco:* Venezuela (0102)\n` +
+      `👤 *Cédula:* 28.659.024\n` +
+      `📱 *Teléfono:* 0412-722-70-17\n` +
+      `💰 *Monto exacto a pagar:* ${totalBS} Bs.\n\n` +
+      `⚠️ *IMPORTANTE:*\n` +
+      `Por favor realiza el pago por el monto exacto y *envía el capture (comprobante) por este mismo chat* para verificar.\n\n` +
+      `🛡️ *SEGURIDAD DEL MENOR:*\n` +
+      `El niño debe presentarse con su representante o alguien mayor de edad con la referencia para la verificación del pago. En caso de mandar al niño solo, podemos llamar para verificar los datos del mismo por seguridad del menor de edad.`;
 
     try {
       const response = await fetch(
@@ -913,6 +973,44 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
 
       {metodo === "otros" && (
         <div className="space-y-5 animate-in zoom-in-95 duration-300">
+          {/* --- NUEVO BOTÓN PARA OTROS BANCOS --- */}
+          <button
+            type="button"
+            onClick={handleBotConnectOtros}
+            disabled={envioEstado === "enviando"}
+            className="
+              w-full
+              flex items-center justify-center gap-2
+              py-3 rounded-xl
+              bg-white/10 text-white font-semibold
+              transition-all duration-300 ease-out
+              hover:bg-white/20
+              active:scale-[0.98]
+              disabled:opacity-70
+            "
+          >
+            {/* ICONO (ESPACIO FIJO) */}
+            <div className="w-7 h-7 flex items-center justify-center">
+              {envioEstado === "enviando" ? (
+                <Loader2 className="w-6 h-6 animate-spin text-white/90" />
+              ) : envioEstado === "enviado" ? (
+                <FaCircleCheck className="w-6 h-6 text-green-400 animate-[pop_0.35s_ease-out]" />
+              ) : (
+                /* AQUÍ ESTÁ EL CAMBIO DE ÍCONO A SMARTPHONE */
+                <Smartphone className="w-6 h-6 text-white transition-transform duration-300 group-hover:scale-110" />
+              )}
+            </div>
+
+            {/* TEXTO (ANCHO FIJO) */}
+            <span className="tracking-wide min-w-[140px] text-center transition-opacity duration-300">
+              {envioEstado === "enviando"
+                ? "Enviando..."
+                : envioEstado === "enviado"
+                  ? "Enviado"
+                  : "Enviar datos Pago Móvil"}
+            </span>
+          </button>
+
           <div className="bg-linear-to-br from-white/10 to-black/30  rounded-2xl p-5 text-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-white/60">
