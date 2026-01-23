@@ -762,7 +762,7 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
 
     try {
       const response = await fetch(
-        "http://bot-api-biciaventuras.duckdns.org/enviar-mensaje",
+        "https://bot-api-biciaventuras.duckdns.org/enviar-mensaje",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
