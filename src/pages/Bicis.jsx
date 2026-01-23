@@ -210,7 +210,7 @@ const BiciCard = ({
   onAgregar,
   onTogglePausa,
 }) => {
-  const ocupada = !!info;
+const ocupada = !!info && !preData;
   const preseleccionada = !!preData;
   const pausada = info?.estado === "pausado";
 
@@ -444,12 +444,12 @@ export default function BicisPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [biciEnModal, setBiciEnModal] = useState(null);
 
-  // --- CARGA DE DATOS & REALTIME ---
-  const fetchPista = async () => {
+const fetchPista = async () => {
     const { data } = await supabase
       .from("pista_biciaventuras")
       .select("*")
-      .in("estado", ["en_curso", "pausado"]);
+      // AGREGADO: "pre_seleccion"
+      .in("estado", ["en_curso", "pausado", "pre_seleccion"]);
     if (data) setPistaData(data);
   };
 
@@ -502,71 +502,67 @@ export default function BicisPage() {
     setModalOpen(true);
   };
 
-  const handlePreseleccionar = (tiempoTexto, ventaObj) => {
+const handlePreseleccionar = async (tiempoTexto, ventaObj) => {
     setModalOpen(false);
-    setPreSelecciones((prev) => ({
-      ...prev,
-      [biciEnModal]: {
-        tiempoTexto,
-        minutos: parseDuracion(tiempoTexto),
-        ventaObj,
-        cliente_nombre: ventaObj ? ventaObj.nombre_cliente : "Cliente Casual",
-      },
-    }));
-  };
-
-  const handleCancelarPre = (bici) => {
-    setPreSelecciones((prev) => {
-      const copy = { ...prev };
-      delete copy[bici];
-      return copy;
-    });
-  };
-
-  const handleIniciarReal = async (bici) => {
-    const preData = preSelecciones[bici];
-    if (!preData) return;
-
-    const inicio = new Date();
-    const fin = new Date(inicio.getTime() + preData.minutos * 60 * 1000);
-
-    const nuevaEntradaOptimista = {
-      id: `temp-${Date.now()}`,
-      bicicleta: bici,
-      inicio: inicio.toISOString(),
-      fin: fin.toISOString(),
-      estado: "en_curso",
-      venta_id: preData.ventaObj ? preData.ventaObj.id : null,
-      cliente_nombre: preData.cliente_nombre,
-    };
-
-    setPreSelecciones((prev) => {
-      const copy = { ...prev };
-      delete copy[bici];
-      return copy;
-    });
-
-    // Actualizamos UI inmediatamente (Optimista)
-    // Cuando el Realtime detecte el INSERT, esto se reemplazará con el dato real del servidor
-    setPistaData((prev) => [...prev, nuevaEntradaOptimista]);
-
-    showSuccess(`${bici} iniciada`, "success");
-
+    
+    // Calculamos minutos
+    const minutos = parseDuracion(tiempoTexto);
+    
+    // INSERTAMOS en DB con estado pre_seleccion. 
+    // Al tener venta_id, el modal de cupos detectará que se usó un cupo.
     const { error } = await supabase.from("pista_biciaventuras").insert([
       {
-        bicicleta: nuevaEntradaOptimista.bicicleta,
-        inicio: nuevaEntradaOptimista.inicio,
-        fin: nuevaEntradaOptimista.fin,
-        estado: nuevaEntradaOptimista.estado,
-        venta_id: nuevaEntradaOptimista.venta_id,
-        cliente_nombre: nuevaEntradaOptimista.cliente_nombre,
+        bicicleta: biciEnModal,
+        venta_id: ventaObj ? ventaObj.id : null,
+        cliente_nombre: ventaObj ? ventaObj.nombre_cliente : "Cliente Casual",
+        estado: "pre_seleccion", // <--- ESTADO CLAVE
+        duracion_minutos: minutos, // Guardamos esto para usarlo al iniciar
+        tiempo_texto_pactado: tiempoTexto
       },
     ]);
 
     if (error) {
-      console.error(error);
-      fetchPista(); // Si falla, recargamos para borrar el optimista
+       console.error(error);
+       showSuccess("Error al pre-seleccionar", "error");
     }
+    // No hace falta setPreSelecciones, el realtime o el fetch actualizarán la UI
+  };
+
+// OJO: Ahora recibimos el ID del registro, no el nombre de la bici
+  const handleCancelarPre = async (idRegistro) => {
+    // Optimista UI
+    setPistaData((prev) => prev.filter((item) => item.id !== idRegistro));
+    
+    // Borramos de la DB -> Se libera el cupo
+    await supabase.from("pista_biciaventuras").delete().eq("id", idRegistro);
+  };
+
+// OJO: Ahora recibimos el objeto 'info' completo (la fila de la DB)
+  const handleIniciarReal = async (info) => {
+    const inicio = new Date();
+    // Usamos los minutos que guardamos en la DB en el paso 3
+    const fin = new Date(inicio.getTime() + (info.duracion_minutos || 0) * 60 * 1000);
+
+    // Optimista UI
+    setPistaData((prev) =>
+      prev.map((item) =>
+        item.id === info.id
+          ? { ...item, estado: "en_curso", inicio: inicio.toISOString(), fin: fin.toISOString() }
+          : item
+      )
+    );
+
+    showSuccess(`${info.bicicleta} iniciada`, "success");
+
+    // UPDATE en vez de INSERT
+    await supabase
+      .from("pista_biciaventuras")
+      .update({
+        inicio: inicio.toISOString(),
+        fin: fin.toISOString(),
+        estado: "en_curso",
+      })
+      .eq("id", info.id);
   };
 
   const handleTogglePausa = async (info) => {
@@ -649,7 +645,7 @@ export default function BicisPage() {
       .eq("id", idRegistro);
   };
 
-  const { enPista, disponibles } = useMemo(() => {
+const { enPista, disponibles } = useMemo(() => {
     const activeMap = {};
     pistaData.forEach((item) => {
       activeMap[item.bicicleta] = item;
@@ -659,24 +655,30 @@ export default function BicisPage() {
     const disp = [];
 
     BICIS_ORIGINALES.forEach((bici) => {
-      if (activeMap[bici]) {
-        pista.push({ nombre: bici, data: activeMap[bici], preData: null });
-      } else if (preSelecciones[bici]) {
-        pista.push({ nombre: bici, data: null, preData: preSelecciones[bici] });
+      const datosDB = activeMap[bici];
+      
+      if (datosDB) {
+        // Si existe en DB (pre_seleccion o en_curso), lo mandamos a pista
+        // IMPORTANTE: Pasamos datosDB en 'data' y también simulamos 'preData' si es necesario
+        const esPre = datosDB.estado === 'pre_seleccion';
+        pista.push({ 
+            nombre: bici, 
+            data: datosDB, // Datos reales de DB
+            preData: esPre ? { 
+                tiempoTexto: datosDB.tiempo_texto_pactado, 
+                cliente_nombre: datosDB.cliente_nombre 
+            } : null 
+        });
       } else {
         disp.push(bici);
       }
     });
-
-    pista.sort((a, b) => {
-      if (a.data && !b.data) return -1;
-      if (!a.data && b.data) return 1;
-      if (a.data && b.data) return new Date(a.data.fin) - new Date(b.data.fin);
-      return 0;
-    });
+    
+    // Ordenar (opcional)
+    pista.sort((a, b) => new Date(a.data.created_at) - new Date(b.data.created_at));
 
     return { enPista: pista, disponibles: disp };
-  }, [pistaData, preSelecciones]);
+  }, [pistaData]); // Quitamos preSelecciones de las dependencias
 
   return (
     <div className="min-h-screen text-white pb-5">
@@ -708,19 +710,26 @@ export default function BicisPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {enPista.map((item) => (
-                <BiciCard
-                  key={item.nombre}
-                  bici={item.nombre}
-                  info={item.data}
-                  preData={item.preData}
-                  now={now}
-                  onTerminar={handleTerminar}
-                  onAgregar={handleAgregarTiempo}
-                  onTogglePausa={handleTogglePausa}
-                  onIniciarReal={handleIniciarReal}
-                  onCancelarPre={handleCancelarPre}
-                  onAbrirModal={() => {}}
-                />
+// Dentro del return, donde haces enPista.map...
+<BiciCard
+  key={item.nombre}
+  bici={item.nombre}
+  info={item.data}
+  preData={item.preData} // Esto viene del useMemo nuevo
+  now={now}
+  onTerminar={handleTerminar}
+  onAgregar={handleAgregarTiempo}
+  onTogglePausa={handleTogglePausa}
+  
+  // --- CAMBIOS AQUÍ ---
+  // Pasamos el objeto 'item.data' completo, no solo el nombre
+  onIniciarReal={() => handleIniciarReal(item.data)} 
+  // Pasamos el ID para borrar
+  onCancelarPre={() => handleCancelarPre(item.data.id)} 
+  // --------------------
+  
+  onAbrirModal={() => {}}
+/>
               ))}
             </div>
           </div>
