@@ -713,10 +713,17 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
   const metodo = watch("metodo_pago");
   const montoRecibido = watch("monto_recibido") || 0;
   const monedaPago = watch("moneda_pago");
+    const time = watch("tiempo");
 
   // Cálculos de monto
-  const totalUSD =
-    defaultValues.cantidad * (defaultValues.tiempo === "10" ? 2 : 3);
+      const tarifas = {
+    10: 2,
+    20: 3,
+    30: 5,
+    60: 9,
+  };
+
+  const totalUSD = tarifas[time] || 0;
 
   // CORRECCIÓN 2: Monto para la URL (Debe tener punto decimal y sin puntos de mil)
   const montoParaUrl = (totalUSD * tasa).toFixed(2);
