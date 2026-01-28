@@ -1,33 +1,49 @@
 export default async function handler(req, res) {
   // 1. CONFIGURACIÓN CORS (Permisos de acceso)
-  // Permite acceso desde cualquier origen (*)
   res.setHeader('Access-Control-Allow-Origin', '*');
-  // Permite los métodos GET y OPTIONS
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  // Permite ciertos encabezados
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-dolarvzla-key');
 
   // 2. MANEJO DE PREFLIGHT (Solicitud OPTIONS)
-  // Los navegadores preguntan primero con OPTIONS si pueden entrar. 
-  // Aquí les respondemos "OK" inmediatamente.
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // --- TU CÓDIGO ORIGINAL SIGUE AQUÍ ---
+  // 3. OBTENER PARAMETROS Y API KEY
+  // Leemos si el frontend pide 'history', 'interventions' o la actual (default)
+  const { type, from, to } = req.query; 
+  
+  // IMPORTANTE: Asegúrate de tener esta variable en tu archivo .env de Vercel
+  const API_KEY = process.env.DOLAR_VZLA_KEY; 
 
-  const API_URL = 'https://api.dolarvzla.com/public/exchange-rate';
+  // URL Base
+  const BASE_URL = 'https://api.dolarvzla.com/public';
+  let targetUrl = `${BASE_URL}/exchange-rate`; // Por defecto: Tasa actual
+
+  // Lógica para cambiar la URL según lo que pida tu React
+  if (type === 'history') {
+    targetUrl = `${BASE_URL}/exchange-rate/list`;
+  } else if (type === 'interventions') {
+    targetUrl = `${BASE_URL}/interventions`;
+  }
+
+  // Construimos la URL con parámetros (from, to) si existen
+  const urlObj = new URL(targetUrl);
+  if (from) urlObj.searchParams.append('from', from);
+  if (to) urlObj.searchParams.append('to', to);
 
   try {
-    const response = await fetch(API_URL, {
+    // 4. PETICIÓN A LA API EXTERNA
+    const response = await fetch(urlObj.toString(), {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'x-dolarvzla-key': API_KEY || '' // Insertamos la llave aquí
       }
     });
 
-    if (!response.ok) throw new Error('Fallo API Externa');
+    if (!response.ok) throw new Error(`Fallo API Externa: ${response.status}`);
 
     const data = await response.json();
 
@@ -35,12 +51,18 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
 
   } catch (error) {
-    console.error('Usando tasa de emergencia:', error);
+    console.error('Error detectado, activando modo emergencia:', error);
 
-    // Caso de ERROR (Emergencia):
-    // IMPORTANTE: Mantenemos la estructura EXACTA de "current" 
-    // para que el frontend no se rompa.
-    const fechaHoy = new Date().toISOString().split('T')[0]; // "2025-12-05"
+    // 5. MODO EMERGENCIA (FALLBACK)
+    
+    // Si la petición era de HISTORIAL, no podemos devolver el objeto de emergencia
+    // porque el frontend espera un Arreglo []. Devolvemos array vacío para no romper la app.
+    if (type === 'history' || type === 'interventions') {
+        return res.status(200).json([]); 
+    }
+
+    // Si la petición era de TASA ACTUAL, devolvemos tu objeto manual
+    const fechaHoy = new Date().toISOString().split('T')[0]; 
 
     return res.status(200).json({
       current: {
@@ -57,7 +79,7 @@ export default async function handler(req, res) {
         usd: 0,
         eur: 0
       },
-      source: "Manual (Emergencia)"
+      source: "Manual (Emergencia - Fallo API)"
     });
   }
 }
