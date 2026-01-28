@@ -713,19 +713,23 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
   const metodo = watch("metodo_pago");
   const montoRecibido = watch("monto_recibido") || 0;
   const monedaPago = watch("moneda_pago");
-    const time = watch("tiempo");
+  const time = watch("tiempo");
+  // CORRECCIÓN: Observamos la cantidad del formulario
+  const cantidad = watch("cantidad");
 
   // Cálculos de monto
-      const tarifas = {
+  const tarifas = {
     10: 2,
     20: 3,
     30: 5,
     60: 9,
   };
 
-  const totalUSD = tarifas[time] || 0;
+  const precioUnitario = tarifas[time] || 0;
+  // CORRECCIÓN: Multiplicamos el precio unitario por la cantidad
+  const totalUSD = precioUnitario * cantidad;
 
-  // CORRECCIÓN 2: Monto para la URL (Debe tener punto decimal y sin puntos de mil)
+  // Monto para la URL (Debe tener punto decimal y sin puntos de mil)
   const montoParaUrl = (totalUSD * tasa).toFixed(2);
 
   // Monto para mostrar en el mensaje (Este sí puede ser con coma si prefieres)
