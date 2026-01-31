@@ -66,7 +66,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       current: {
-        usd: 295.00,  // Tasa manual de emergencia
+        usd: 370.25,  // Tasa manual de emergencia
         eur: 310.00,
         date: fechaHoy
       },
@@ -81,5 +81,6 @@ export default async function handler(req, res) {
       },
       source: "Manual (Emergencia - Fallo API)"
     });
+    
   }
 }
