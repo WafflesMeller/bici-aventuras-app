@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         date: fechaHoy
       },
       previous: { 
-        usd: 260.00,
+        usd: 370.25,
         eur: 310.00,
         date: fechaHoy
       },
