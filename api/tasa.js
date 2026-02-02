@@ -1,86 +1,33 @@
 export default async function handler(req, res) {
-  // 1. CONFIGURACIÓN CORS (Permisos de acceso)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-dolarvzla-key');
-
-  // 2. MANEJO DE PREFLIGHT (Solicitud OPTIONS)
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // 3. OBTENER PARAMETROS Y API KEY
-  // Leemos si el frontend pide 'history', 'interventions' o la actual (default)
-  const { type, from, to } = req.query; 
-  
-  // IMPORTANTE: Asegúrate de tener esta variable en tu archivo .env de Vercel
-  const API_KEY = process.env.DOLAR_VZLA_KEY; 
-
-  // URL Base
-  const BASE_URL = 'https://api.dolarvzla.com/public';
-  let targetUrl = `${BASE_URL}/exchange-rate`; // Por defecto: Tasa actual
-
-  // Lógica para cambiar la URL según lo que pida tu React
-  if (type === 'history') {
-    targetUrl = `${BASE_URL}/exchange-rate/list`;
-  } else if (type === 'interventions') {
-    targetUrl = `${BASE_URL}/interventions`;
-  }
-
-  // Construimos la URL con parámetros (from, to) si existen
-  const urlObj = new URL(targetUrl);
-  if (from) urlObj.searchParams.append('from', from);
-  if (to) urlObj.searchParams.append('to', to);
-
   try {
-    // 4. PETICIÓN A LA API EXTERNA
-    const response = await fetch(urlObj.toString(), {
-      method: 'GET',
+    const response = await fetch('https://www.bcv.org.ve/', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'x-dolarvzla-key': API_KEY || '' // Insertamos la llave aquí
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
+    const html = await response.text();
 
-    if (!response.ok) throw new Error(`Fallo API Externa: ${response.status}`);
+    // Extraemos el valor usando Regex (buscamos lo que esté dentro de los IDs específicos)
+    const extract = (id) => {
+      const regex = new RegExp(`<div id="${id}"[^>]*>.*?<strong>\\s*([^<]+)\\s*</strong>`, 's');
+      const match = html.match(regex);
+      return match ? match[1].trim().replace(',', '.') : 'No encontrado';
+    };
 
-    const data = await response.json();
+    const usd = extract('dolar');
+    const eur = extract('euro');
 
-    // Caso de ÉXITO: Devolvemos la data tal cual
-    return res.status(200).json(data);
-
-  } catch (error) {
-    console.error('Error detectado, activando modo emergencia:', error);
-
-    // 5. MODO EMERGENCIA (FALLBACK)
+    // Configurar CORS para que tu React pueda leerla
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
     
-    // Si la petición era de HISTORIAL, no podemos devolver el objeto de emergencia
-    // porque el frontend espera un Arreglo []. Devolvemos array vacío para no romper la app.
-    if (type === 'history' || type === 'interventions') {
-        return res.status(200).json([]); 
-    }
-
-    // Si la petición era de TASA ACTUAL, devolvemos tu objeto manual
-    const fechaHoy = new Date().toISOString().split('T')[0]; 
-
-    return res.status(200).json({
-      current: {
-        usd: 370.25,  // Tasa manual de emergencia
-        eur: 310.00,
-        date: fechaHoy
-      },
-      previous: { 
-        usd: 370.25,
-        eur: 310.00,
-        date: fechaHoy
-      },
-      changePercentage: { 
-        usd: 0,
-        eur: 0
-      },
-      source: "Manual (Emergencia - Fallo API)"
+    res.status(200).json({
+      fecha: new Date().toISOString(),
+      usd: parseFloat(usd),
+      eur: parseFloat(eur),
+      unidad: "VES"
     });
-    
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener los datos del BCV' });
   }
 }
