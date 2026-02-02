@@ -1,11 +1,10 @@
 import https from "https";
-import xpath from "xpath";
-import { DOMParser } from "xmldom";
+import { JSDOM } from "jsdom";
 
 function download(url) {
   return new Promise((resolve, reject) => {
     const agent = new https.Agent({
-      rejectUnauthorized: false, // necesario para el TLS del BCV
+      rejectUnauthorized: false, // BCV TLS roto
     });
 
     https.get(
@@ -20,7 +19,7 @@ function download(url) {
       },
       (res) => {
         let data = "";
-        res.on("data", (chunk) => (data += chunk));
+        res.on("data", (c) => (data += c));
         res.on("end", () => resolve(data));
       }
     ).on("error", reject);
@@ -31,66 +30,37 @@ export default async function handler(req, res) {
   try {
     const html = await download("https://www.bcv.org.ve/");
 
-    const doc = new DOMParser({
-      errorHandler: {
-        warning: () => {},
-        error: () => {},
-        fatalError: () => {},
-      },
-    }).parseFromString(html, "text/html");
+    const dom = new JSDOM(html);
+    const { document } = dom.window;
 
-    // ----------------------------
-    // 1️⃣ Tu XPath EXACTO
-    // ----------------------------
-    const xpathExact =
+    // 👉 TU XPATH EXACTO
+    const xpath =
       "/html/body/div[4]/div/div[2]/div/div[1]/div[1]/section[1]/div/div[2]/div/div[7]/div/div/div[2]/strong";
 
-    // ----------------------------
-    // 2️⃣ XPath semántico (robusto)
-    //   Busca el contenedor que tenga el texto USD
-    //   y luego cualquier <strong> dentro
-    // ----------------------------
-    const xpathByUSD =
-      "//*[contains(normalize-space(.),'USD')]//following::strong";
+    const result = document.evaluate(
+      xpath,
+      document,
+      null,
+      dom.window.XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    );
 
-    let nodes = xpath.select(xpathExact, doc);
-    let usedXpath = xpathExact;
+    const node = result.singleNodeValue;
 
-    if (!nodes || nodes.length === 0) {
-      nodes = xpath.select(xpathByUSD, doc);
-      usedXpath = xpathByUSD;
-    }
-
-    if (!nodes || nodes.length === 0) {
+    if (!node) {
       return res.status(404).json({
         ok: false,
-        error: "No se pudo localizar la tasa con ninguno de los XPaths",
+        error: "No se encontró el nodo usando el XPath indicado",
       });
     }
 
-    // Tomamos el primer <strong> que parezca una tasa
-    let raw = null;
+    let raw = node.textContent || "";
 
-    for (const n of nodes) {
-      const t = (n.textContent || "")
-        .replace(/\u00a0/g, " ")
-        .replace(/\s+/g, " ")
-        .replace(",", ".")
-        .trim();
-
-      // Formato típico: 36.54 / 38.1234
-      if (/^\d+(\.\d+)?$/.test(t)) {
-        raw = t;
-        break;
-      }
-    }
-
-    if (!raw) {
-      return res.status(404).json({
-        ok: false,
-        error: "Se encontraron nodos, pero ninguno parece una tasa válida",
-      });
-    }
+    raw = raw
+      .replace(/\u00a0/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(",", ".")
+      .trim();
 
     const value = parseFloat(raw);
 
@@ -104,12 +74,12 @@ export default async function handler(req, res) {
       source: "bcv.org.ve",
       currency: "USD",
       raw,
-      value,
-      xpath_used: usedXpath,
+      value: Number.isNaN(value) ? null : value,
+      xpath,
       fetched_at: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("BCV error:", err);
+    console.error(err);
 
     return res.status(500).json({
       ok: false,
