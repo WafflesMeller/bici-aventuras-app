@@ -1,34 +1,36 @@
+import * as cheerio from 'cheerio';
+
 export default async function handler(req, res) {
-  // CORS habilitado
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
   try {
-    // Consultamos la API pública de pyDolarVenezuela (monitor)
-    // Documentación: https://github.com/fcoagz/api-pydolarvenezuela
-    const response = await fetch('https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=bcv');
-    
-    if (!response.ok) throw new Error('Error conectando con el proveedor de datos');
+    // Usamos corsproxy.io que es muy rápido y suele pasar los filtros
+    const target = 'https://www.bcv.org.ve/';
+    const proxy = `https://corsproxy.io/?${encodeURIComponent(target)}`;
 
-    const data = await response.json();
-    
-    // La estructura de esta API suele devolver "monitors"
-    const bcvData = data.monitors.usd;
+    const response = await fetch(proxy);
+    const html = await response.text();
+    const $ = cheerio.load(html);
+
+    const parsear = (id) => {
+      const val = $(`${id} strong`).text().trim().replace(',', '.');
+      return parseFloat(val);
+    };
+
+    const usd = parsear('#dolar');
+    const eur = parsear('#euro');
+
+    if (!usd || !eur) throw new Error("No se encontraron los datos en el HTML");
 
     res.status(200).json({
       success: true,
-      usd: bcvData.price, // Precio del dólar
-      eur: data.monitors.eur.price, // Precio del euro (a veces viene separado, si falla avísame)
-      fecha: bcvData.last_update,
-      fuente: "BCV (vía pyDolarVenezuela API)"
+      usd,
+      eur,
+      fecha: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      error: "No se pudo obtener la tasa",
-      detalle: error.message
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 }
