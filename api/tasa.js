@@ -1,28 +1,38 @@
+import https from "https";
 import xpath from "xpath";
 import { DOMParser } from "xmldom";
 
+/**
+ * Descarga HTML usando https nativo
+ * (mucho más estable que fetch en Vercel para este dominio)
+ */
+function download(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(
+        url,
+        {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+            Accept: "text/html",
+          },
+        },
+        (res) => {
+          let data = "";
+
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => resolve(data));
+        }
+      )
+      .on("error", reject);
+  });
+}
+
 export default async function handler(req, res) {
   try {
-    const url = "https://www.bcv.org.ve/";
+    const html = await download("https://www.bcv.org.ve/");
 
-    const response = await fetch(url, {
-      headers: {
-        // importante para evitar bloqueos básicos
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-      },
-    });
-
-    if (!response.ok) {
-      return res.status(500).json({
-        ok: false,
-        error: "No se pudo descargar la página del BCV",
-      });
-    }
-
-    const html = await response.text();
-
-    // Parseamos el HTML como DOM
     const doc = new DOMParser({
       errorHandler: {
         warning: () => {},
@@ -31,7 +41,7 @@ export default async function handler(req, res) {
       },
     }).parseFromString(html, "text/html");
 
-    // 👉 TU XPATH EXACTO
+    // 👉 TU XPATH EXACTO (igual al de Google Sheets)
     const xpathExpression =
       "/html/body/div[4]/div/div[2]/div/div[1]/div[1]/section[1]/div/div[2]/div/div[7]/div/div/div[2]/strong";
 
@@ -44,17 +54,17 @@ export default async function handler(req, res) {
       });
     }
 
-    let value = nodes[0].textContent || "";
+    let raw = nodes[0].textContent || "";
 
-    // Limpieza básica
-    value = value
+    raw = raw
+      .replace(/\u00a0/g, " ")
       .replace(/\s+/g, " ")
       .replace(",", ".")
       .trim();
 
-    const number = parseFloat(value);
+    const value = parseFloat(raw);
 
-    // Headers de cache (muy recomendado para este tipo de scraping)
+    // Cache para no golpear BCV innecesariamente
     res.setHeader(
       "Cache-Control",
       "s-maxage=300, stale-while-revalidate=600"
@@ -62,15 +72,14 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
-      source: "bcv.org.ve",
       currency: "USD",
-      raw: value,
-      value: isNaN(number) ? null : number,
+      raw,
+      value: isNaN(value) ? null : value,
       xpath: xpathExpression,
       fetched_at: new Date().toISOString(),
     });
   } catch (err) {
-    console.error(err);
+    console.error("BCV error:", err);
 
     return res.status(500).json({
       ok: false,
