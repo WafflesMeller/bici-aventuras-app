@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const html = response.data;
     const $ = cheerio.load(html);
 
-    // IDs reales del BCV
+    // IDs reales del BCV según el HTML que tú pasaste
     const map = {
       EUR: "#euro",
       CNY: "#yuan",
@@ -34,8 +34,7 @@ export default async function handler(req, res) {
       USD: "#dolar",
     };
 
-    // Normaliza, redondea a 2 decimales y deja coma decimal
-    const normalizeAndFormat = (txt) => {
+    const parseNumber = (txt) => {
       if (!txt) return null;
 
       const n = parseFloat(
@@ -47,26 +46,24 @@ export default async function handler(req, res) {
 
       if (Number.isNaN(n)) return null;
 
-      // 2 decimales
-      const fixed = n.toFixed(2);
-
-      // coma decimal
-      return fixed.replace(".", ",");
+      // redondeo a 2 decimales, pero manteniendo number
+      return Math.round(n * 100) / 100;
     };
 
     const rates = {};
 
     for (const [code, selector] of Object.entries(map)) {
       const raw = $(selector).find("strong").first().text();
-      rates[code] = normalizeAndFormat(raw);
+      rates[code] = parseNumber(raw);
     }
 
-    // -----------------------------
-    // Fecha valor real publicada
-    // -----------------------------
-    const fechaValor = $(".date-display-single").first().text().trim() || null;
+    // Fecha valor publicada por el BCV
+    const fechaValor =
+      $(".date-display-single").first().text().trim() || null;
 
-    const any = Object.values(rates).some((v) => v !== null);
+    const any = Object.values(rates).some(
+      (v) => typeof v === "number"
+    );
 
     if (!any) {
       return res.status(404).json({
@@ -83,8 +80,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       source: "bcv.org.ve",
-      fecha_valor: fechaValor,   // ← la fecha publicada por el BCV
-      rates,                     // ← una sola estructura
+      fecha_valor: fechaValor,
+      rates, // ← SOLO números
       fetched_at: new Date().toISOString(),
     });
   } catch (err) {
