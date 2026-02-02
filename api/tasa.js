@@ -9,7 +9,7 @@ import * as cheerio from "cheerio";
 export default async function handler(req, res) {
   try {
     const agent = new https.Agent({
-      rejectUnauthorized: false, // TLS incompleto del BCV
+      rejectUnauthorized: false,
     });
 
     const response = await axios.get("https://www.bcv.org.ve/", {
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const html = response.data;
     const $ = cheerio.load(html);
 
-    // Mapeo directo por IDs reales del BCV
+    // IDs reales del BCV
     const map = {
       EUR: "#euro",
       CNY: "#yuan",
@@ -34,31 +34,41 @@ export default async function handler(req, res) {
       USD: "#dolar",
     };
 
-    const normalize = (v) => {
-      if (!v) return null;
-      return v
-        .replace(/\u00a0/g, " ")
-        .replace(/\s+/g, "")
-        .replace(",", ".");
+    // Normaliza, redondea a 2 decimales y deja coma decimal
+    const normalizeAndFormat = (txt) => {
+      if (!txt) return null;
+
+      const n = parseFloat(
+        txt
+          .replace(/\u00a0/g, "")
+          .replace(/\s+/g, "")
+          .replace(",", ".")
+      );
+
+      if (Number.isNaN(n)) return null;
+
+      // 2 decimales
+      const fixed = n.toFixed(2);
+
+      // coma decimal
+      return fixed.replace(".", ",");
     };
 
     const rates = {};
-    const raw = {};
 
     for (const [code, selector] of Object.entries(map)) {
-      const txt = $(selector).find("strong").first().text();
-      raw[code] = txt?.trim() || null;
-
-      const n = normalize(txt);
-      rates[code] = n ? Number.parseFloat(n) : null;
+      const raw = $(selector).find("strong").first().text();
+      rates[code] = normalizeAndFormat(raw);
     }
 
-    // Validación mínima
-    const anyValue = Object.values(rates).some(
-      (v) => typeof v === "number" && !Number.isNaN(v)
-    );
+    // -----------------------------
+    // Fecha valor real publicada
+    // -----------------------------
+    const fechaValor = $(".date-display-single").first().text().trim() || null;
 
-    if (!anyValue) {
+    const any = Object.values(rates).some((v) => v !== null);
+
+    if (!any) {
       return res.status(404).json({
         ok: false,
         error: "No se pudieron leer las tasas desde el HTML del BCV",
@@ -73,8 +83,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       source: "bcv.org.ve",
-      rates, // <- todas las monedas
-      raw,   // <- texto original por moneda
+      fecha_valor: fechaValor,   // ← la fecha publicada por el BCV
+      rates,                     // ← una sola estructura
       fetched_at: new Date().toISOString(),
     });
   } catch (err) {
