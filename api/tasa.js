@@ -4,9 +4,8 @@ import { DOMParser } from "xmldom";
 
 function download(url) {
   return new Promise((resolve, reject) => {
-
     const agent = new https.Agent({
-      rejectUnauthorized: false, // 👈 clave para BCV
+      rejectUnauthorized: false, // necesario para BCV
     });
 
     https.get(
@@ -21,7 +20,6 @@ function download(url) {
       },
       (res) => {
         let data = "";
-
         res.on("data", (chunk) => (data += chunk));
         res.on("end", () => resolve(data));
       }
@@ -41,25 +39,54 @@ export default async function handler(req, res) {
       },
     }).parseFromString(html, "text/html");
 
-    const xpathExpression =
+    // 👉 1. Tu XPath EXACTO
+    const xpathExact =
       "/html/body/div[4]/div/div[2]/div/div[1]/div[1]/section[1]/div/div[2]/div/div[7]/div/div/div[2]/strong";
 
-    const nodes = xpath.select(xpathExpression, doc);
+    // 👉 2. XPath de respaldo (mucho más estable)
+    // Busca el strong del bloque de USD por contexto
+    const xpathFallback =
+      "//div[contains(@class,'views-row')]//strong";
+
+    let nodes = xpath.select(xpathExact, doc);
+    let usedXpath = xpathExact;
+
+    // Fallback automático
+    if (!nodes || nodes.length === 0) {
+      nodes = xpath.select(xpathFallback, doc);
+      usedXpath = xpathFallback;
+    }
 
     if (!nodes || nodes.length === 0) {
       return res.status(404).json({
         ok: false,
-        error: "No se encontró el nodo usando el XPath indicado",
+        error: "No se pudo localizar la tasa con ninguno de los XPaths",
       });
     }
 
-    let raw = nodes[0].textContent || "";
+    // En el fallback pueden venir varios strong, tomamos
+    // el primero que tenga forma de número
+    let raw = null;
 
-    raw = raw
-      .replace(/\u00a0/g, " ")
-      .replace(/\s+/g, " ")
-      .replace(",", ".")
-      .trim();
+    for (const n of nodes) {
+      const t = (n.textContent || "")
+        .replace(/\u00a0/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(",", ".")
+        .trim();
+
+      if (/\d+\.\d+/.test(t)) {
+        raw = t;
+        break;
+      }
+    }
+
+    if (!raw) {
+      return res.status(404).json({
+        ok: false,
+        error: "No se encontró un valor numérico válido",
+      });
+    }
 
     const value = parseFloat(raw);
 
@@ -70,14 +97,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
-      source: "bcv.org.ve",
       currency: "USD",
       raw,
       value: isNaN(value) ? null : value,
-      xpath: xpathExpression,
+      xpath_used: usedXpath,
       fetched_at: new Date().toISOString(),
     });
-
   } catch (err) {
     console.error("BCV error:", err);
 
