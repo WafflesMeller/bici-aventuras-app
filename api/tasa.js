@@ -77,13 +77,25 @@ export default async function handler(req, res) {
       "s-maxage=300, stale-while-revalidate=600"
     );
 
-    return res.status(200).json({
-      ok: true,
-      source: "bcv.org.ve",
-      fecha_valor: fechaValor,
-      rates, // ← SOLO números
-      fetched_at: new Date().toISOString(),
-    });
+return res.status(200).json({
+  ok: true,
+  source: "bcv.org.ve",
+
+  // 👉 compatibilidad con tu código actual
+  current: {
+    usd: rates.USD,
+  },
+
+  // 👉 compatibilidad extra por si antes usabas price
+  price: rates.USD,
+
+  // 👉 estructura nueva (todas las monedas)
+  rates,
+
+  fecha_valor: fechaValor,
+  fetched_at: new Date().toISOString(),
+});
+
   } catch (err) {
     console.error("BCV ERROR:", err);
 
