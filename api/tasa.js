@@ -2,70 +2,88 @@ export const config = {
   runtime: "nodejs",
 };
 
+import axios from "axios";
 import https from "https";
-import { JSDOM } from "jsdom";
+import * as cheerio from "cheerio";
 
-
-function download(url) {
-  return new Promise((resolve, reject) => {
+export default async function handler(req, res) {
+  try {
     const agent = new https.Agent({
       rejectUnauthorized: false, // BCV TLS roto
     });
 
-    https.get(
-      url,
-      {
-        agent,
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-          Accept: "text/html",
-        },
+    const response = await axios.get("https://www.bcv.org.ve/", {
+      httpsAgent: agent,
+      timeout: 15000,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html",
       },
-      (res) => {
-        let data = "";
-        res.on("data", (c) => (data += c));
-        res.on("end", () => resolve(data));
+    });
+
+    const html = response.data;
+
+    const $ = cheerio.load(html);
+
+    let raw = null;
+
+    /*
+      Estrategia real:
+      - buscamos cualquier nodo que contenga exactamente "USD"
+      - tomamos el bloque contenedor
+      - buscamos el primer <strong> numérico dentro
+    */
+
+    $("*").each((_, el) => {
+      if (raw) return;
+
+      const text = $(el).text().trim();
+
+      if (text === "USD") {
+        const container = $(el).closest("div, section, article");
+
+        container.find("strong").each((__, s) => {
+          if (raw) return;
+
+          const t = $(s)
+            .text()
+            .replace(/\u00a0/g, " ")
+            .replace(/\s+/g, " ")
+            .replace(",", ".")
+            .trim();
+
+          if (/^\d+(\.\d+)?$/.test(t)) {
+            raw = t;
+          }
+        });
       }
-    ).on("error", reject);
-  });
-}
+    });
 
-export default async function handler(req, res) {
-  try {
-    const html = await download("https://www.bcv.org.ve/");
+    // fallback adicional por si el texto no es exactamente "USD"
+    if (!raw) {
+      $("strong").each((_, s) => {
+        if (raw) return;
 
-    const dom = new JSDOM(html);
-    const { document } = dom.window;
+        const t = $(s)
+          .text()
+          .replace(/\u00a0/g, " ")
+          .replace(/\s+/g, " ")
+          .replace(",", ".")
+          .trim();
 
-    // 👉 TU XPATH EXACTO
-    const xpath =
-      "/html/body/div[4]/div/div[2]/div/div[1]/div[1]/section[1]/div/div[2]/div/div[7]/div/div/div[2]/strong";
-
-    const result = document.evaluate(
-      xpath,
-      document,
-      null,
-      dom.window.XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    );
-
-    const node = result.singleNodeValue;
-
-    if (!node) {
-      return res.status(404).json({
-        ok: false,
-        error: "No se encontró el nodo usando el XPath indicado",
+        if (/^\d+(\.\d+)?$/.test(t)) {
+          raw = t;
+        }
       });
     }
 
-    let raw = node.textContent || "";
-
-    raw = raw
-      .replace(/\u00a0/g, " ")
-      .replace(/\s+/g, " ")
-      .replace(",", ".")
-      .trim();
+    if (!raw) {
+      return res.status(404).json({
+        ok: false,
+        error: "No se pudo detectar la tasa USD en el HTML",
+      });
+    }
 
     const value = parseFloat(raw);
 
@@ -80,15 +98,14 @@ export default async function handler(req, res) {
       currency: "USD",
       raw,
       value: Number.isNaN(value) ? null : value,
-      xpath,
       fetched_at: new Date().toISOString(),
     });
   } catch (err) {
-    console.error(err);
+    console.error("BCV ERROR:", err);
 
     return res.status(500).json({
       ok: false,
-      error: "Error interno consultando BCV",
+      error: "Error consultando BCV",
       detail: err.message,
     });
   }
