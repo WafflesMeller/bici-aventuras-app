@@ -1,5 +1,10 @@
+export const config = {
+  runtime: "nodejs",
+};
+
 import https from "https";
 import { JSDOM } from "jsdom";
+
 
 function download(url) {
   return new Promise((resolve, reject) => {
