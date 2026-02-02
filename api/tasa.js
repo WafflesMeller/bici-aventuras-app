@@ -1,58 +1,58 @@
 import * as cheerio from 'cheerio';
 
 export default async function handler(req, res) {
-  // Configuración de encabezados CORS para que tu app funcione
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Content-Type', 'application/json');
 
   try {
-    // TRUCO: No llamamos al BCV directamente.
-    // Llamamos a 'allorigins', un servicio que hace de puente y no está bloqueado.
-    // Añadimos un timestamp al final para evitar que nos den datos viejos (cache).
-    const targetUrl = 'https://www.bcv.org.ve/';
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${Date.now()}`;
+    // 1. Intentamos con CodeTabs (suele ser más robusto para BCV)
+    // Usamos un número aleatorio al final para evitar caché del proxy
+    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=https://www.bcv.org.ve/&dummy=${Date.now()}`;
 
-    const response = await fetch(proxyUrl);
-    
-    if (!response.ok) throw new Error('Falló la conexión con el proxy');
+    const response = await fetch(proxyUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
 
-    const data = await response.json();
-    
-    // 'data.contents' tiene el HTML del BCV
-    const html = data.contents; 
+    if (!response.ok) {
+      throw new Error(`El proxy respondió con status: ${response.status}`);
+    }
 
-    // Usamos cheerio para buscar los datos como si fuera jQuery/ImportXML
+    const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Función auxiliar para limpiar el texto (quita espacios y cambia comas por puntos)
-    const limpiarNumero = (texto) => {
-      return parseFloat(texto.trim().replace(',', '.')) || 0;
+    // Función para limpiar el número (Venezuela usa coma para decimales)
+    const parsear = (selector) => {
+      const texto = $(selector).text().trim();
+      // Ejemplo: "36,2500" -> 36.25
+      return parseFloat(texto.replace(',', '.')) || 0;
     };
 
-    // Extraemos usando los selectores específicos del BCV
-    const usd = limpiarNumero($('#dolar strong').text());
-    const eur = limpiarNumero($('#euro strong').text());
+    const usd = parsear('#dolar strong');
+    const eur = parsear('#euro strong');
 
-    // Verificamos que hayamos encontrado algo
-    if (!usd || !eur) {
-      throw new Error('El HTML cambió o no se encontraron los selectores #dolar / #euro');
+    // Validación de seguridad: Si obtenemos 0, algo falló en el HTML
+    if (usd === 0 || eur === 0) {
+      throw new Error('Se descargó el sitio, pero no se encontraron los selectores #dolar o #euro');
     }
 
     res.status(200).json({
       success: true,
-      usd: usd,
-      eur: eur,
-      fecha_consulta: new Date().toISOString(),
-      fuente: "Banco Central de Venezuela (vía Proxy)"
+      usd,
+      eur,
+      fecha: new Date().toISOString(),
+      fuente: "BCV (via CodeTabs)"
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      error: 'No se pudo obtener la tasa',
-      mensaje_tecnico: error.message
+    console.error("Error scraping BCV:", error);
+    
+    // Respuesta de error controlada
+    res.status(500).json({ 
+      success: false, 
+      error: "No se pudo obtener la tasa en este momento.",
+      detalle: error.message
     });
   }
 }
