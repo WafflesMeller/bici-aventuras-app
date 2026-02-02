@@ -9,7 +9,7 @@ import * as cheerio from "cheerio";
 export default async function handler(req, res) {
   try {
     const agent = new https.Agent({
-      rejectUnauthorized: false, // BCV TLS roto
+      rejectUnauthorized: false, // BCV tiene TLS con cadena incompleta
     });
 
     const response = await axios.get("https://www.bcv.org.ve/", {
@@ -23,69 +23,35 @@ export default async function handler(req, res) {
     });
 
     const html = response.data;
-
     const $ = cheerio.load(html);
 
-    let raw = null;
+    // -----------------------------
+    // Selectores reales del BCV
+    // -----------------------------
+    const rawUSD = $("#dolar strong").first().text();
+    const rawEUR = $("#euro strong").first().text();
 
-    /*
-      Estrategia real:
-      - buscamos cualquier nodo que contenga exactamente "USD"
-      - tomamos el bloque contenedor
-      - buscamos el primer <strong> numérico dentro
-    */
+    const normalize = (v) => {
+      if (!v) return null;
 
-    $("*").each((_, el) => {
-      if (raw) return;
+      return v
+        .replace(/\u00a0/g, " ")
+        .replace(/\s+/g, "")
+        .replace(",", ".");
+    };
 
-      const text = $(el).text().trim();
+    const usdStr = normalize(rawUSD);
+    const eurStr = normalize(rawEUR);
 
-      if (text === "USD") {
-        const container = $(el).closest("div, section, article");
+    const usd = usdStr ? parseFloat(usdStr) : null;
+    const eur = eurStr ? parseFloat(eurStr) : null;
 
-        container.find("strong").each((__, s) => {
-          if (raw) return;
-
-          const t = $(s)
-            .text()
-            .replace(/\u00a0/g, " ")
-            .replace(/\s+/g, " ")
-            .replace(",", ".")
-            .trim();
-
-          if (/^\d+(\.\d+)?$/.test(t)) {
-            raw = t;
-          }
-        });
-      }
-    });
-
-    // fallback adicional por si el texto no es exactamente "USD"
-    if (!raw) {
-      $("strong").each((_, s) => {
-        if (raw) return;
-
-        const t = $(s)
-          .text()
-          .replace(/\u00a0/g, " ")
-          .replace(/\s+/g, " ")
-          .replace(",", ".")
-          .trim();
-
-        if (/^\d+(\.\d+)?$/.test(t)) {
-          raw = t;
-        }
-      });
-    }
-
-    if (!raw) {
+    if (!usd && !eur) {
       return res.status(404).json({
         ok: false,
-        error: "No se pudo detectar la tasa USD en el HTML",
+        error: "No se pudieron leer las tasas USD ni EUR desde el HTML",
       });
     }
-
-    const value = parseFloat(raw);
 
     res.setHeader(
       "Cache-Control",
@@ -95,9 +61,12 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       source: "bcv.org.ve",
-      currency: "USD",
-      raw,
-      value: Number.isNaN(value) ? null : value,
+      usd: Number.isNaN(usd) ? null : usd,
+      eur: Number.isNaN(eur) ? null : eur,
+      raw: {
+        usd: rawUSD?.trim() || null,
+        eur: rawEUR?.trim() || null,
+      },
       fetched_at: new Date().toISOString(),
     });
   } catch (err) {
