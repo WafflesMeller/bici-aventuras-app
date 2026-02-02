@@ -5,7 +5,7 @@ import { DOMParser } from "xmldom";
 function download(url) {
   return new Promise((resolve, reject) => {
     const agent = new https.Agent({
-      rejectUnauthorized: false, // necesario para BCV
+      rejectUnauthorized: false, // necesario para el TLS del BCV
     });
 
     https.get(
@@ -39,22 +39,26 @@ export default async function handler(req, res) {
       },
     }).parseFromString(html, "text/html");
 
-    // 👉 1. Tu XPath EXACTO
+    // ----------------------------
+    // 1️⃣ Tu XPath EXACTO
+    // ----------------------------
     const xpathExact =
       "/html/body/div[4]/div/div[2]/div/div[1]/div[1]/section[1]/div/div[2]/div/div[7]/div/div/div[2]/strong";
 
-    // 👉 2. XPath de respaldo (mucho más estable)
-    // Busca el strong del bloque de USD por contexto
-    const xpathFallback =
-      "//div[contains(@class,'views-row')]//strong";
+    // ----------------------------
+    // 2️⃣ XPath semántico (robusto)
+    //   Busca el contenedor que tenga el texto USD
+    //   y luego cualquier <strong> dentro
+    // ----------------------------
+    const xpathByUSD =
+      "//*[contains(normalize-space(.),'USD')]//following::strong";
 
     let nodes = xpath.select(xpathExact, doc);
     let usedXpath = xpathExact;
 
-    // Fallback automático
     if (!nodes || nodes.length === 0) {
-      nodes = xpath.select(xpathFallback, doc);
-      usedXpath = xpathFallback;
+      nodes = xpath.select(xpathByUSD, doc);
+      usedXpath = xpathByUSD;
     }
 
     if (!nodes || nodes.length === 0) {
@@ -64,8 +68,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // En el fallback pueden venir varios strong, tomamos
-    // el primero que tenga forma de número
+    // Tomamos el primer <strong> que parezca una tasa
     let raw = null;
 
     for (const n of nodes) {
@@ -75,7 +78,8 @@ export default async function handler(req, res) {
         .replace(",", ".")
         .trim();
 
-      if (/\d+\.\d+/.test(t)) {
+      // Formato típico: 36.54 / 38.1234
+      if (/^\d+(\.\d+)?$/.test(t)) {
         raw = t;
         break;
       }
@@ -84,7 +88,7 @@ export default async function handler(req, res) {
     if (!raw) {
       return res.status(404).json({
         ok: false,
-        error: "No se encontró un valor numérico válido",
+        error: "Se encontraron nodos, pero ninguno parece una tasa válida",
       });
     }
 
@@ -97,9 +101,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
+      source: "bcv.org.ve",
       currency: "USD",
       raw,
-      value: isNaN(value) ? null : value,
+      value,
       xpath_used: usedXpath,
       fetched_at: new Date().toISOString(),
     });
