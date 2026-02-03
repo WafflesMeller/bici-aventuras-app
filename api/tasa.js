@@ -8,6 +8,7 @@ import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
 
+  // CORS (para Expo Web)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -15,6 +16,13 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
+
+  try {
+
+    // 👇 ESTE era el agent que te faltaba
+    const agent = new https.Agent({
+      rejectUnauthorized: false,
+    });
 
     const response = await axios.get("https://www.bcv.org.ve/", {
       httpsAgent: agent,
@@ -29,7 +37,6 @@ export default async function handler(req, res) {
     const html = response.data;
     const $ = cheerio.load(html);
 
-    // IDs reales del BCV según el HTML que tú pasaste
     const map = {
       EUR: "#euro",
       CNY: "#yuan",
@@ -50,7 +57,6 @@ export default async function handler(req, res) {
 
       if (Number.isNaN(n)) return null;
 
-      // redondeo a 2 decimales, pero manteniendo number
       return Math.round(n * 100) / 100;
     };
 
@@ -61,7 +67,6 @@ export default async function handler(req, res) {
       rates[code] = parseNumber(raw);
     }
 
-    // Fecha valor publicada por el BCV
     const fechaValor =
       $(".date-display-single").first().text().trim() || null;
 
@@ -81,24 +86,21 @@ export default async function handler(req, res) {
       "s-maxage=300, stale-while-revalidate=600"
     );
 
-return res.status(200).json({
-  ok: true,
-  source: "bcv.org.ve",
+    return res.status(200).json({
+      ok: true,
+      source: "bcv.org.ve",
 
-  // 👉 compatibilidad con tu código actual
-  current: {
-    usd: rates.USD,
-  },
+      current: {
+        usd: rates.USD,
+      },
 
-  // 👉 compatibilidad extra por si antes usabas price
-  price: rates.USD,
+      price: rates.USD,
 
-  // 👉 estructura nueva (todas las monedas)
-  rates,
+      rates,
 
-  fecha_valor: fechaValor,
-  fetched_at: new Date().toISOString(),
-});
+      fecha_valor: fechaValor,
+      fetched_at: new Date().toISOString(),
+    });
 
   } catch (err) {
     console.error("BCV ERROR:", err);
