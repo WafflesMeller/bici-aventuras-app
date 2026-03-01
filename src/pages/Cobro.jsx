@@ -713,9 +713,15 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
   const metodo = watch("metodo_pago");
   const montoRecibido = watch("monto_recibido") || 0;
   const monedaPago = watch("moneda_pago");
-  const time = watch("tiempo");
-  // CORRECCIÓN: Observamos la cantidad del formulario
-  const cantidad = watch("cantidad");
+// --- INICIO CÓDIGO NUEVO ---
+  const time = defaultValues.tiempo;
+  const cantidad = defaultValues.cantidad || 1;
+
+  // Extraemos solo el número. Si dice "30 min" saca 30. Si dice "1 hora" saca 1.
+  const timeNumber = parseInt(String(time).replace(/\D/g, ""), 10);
+  
+  // Si el número es 1, lo convertimos a 60 minutos. Si no, lo dejamos igual.
+  const tiempoFinal = timeNumber === 1 ? 60 : timeNumber;
 
   // Cálculos de monto
   const tarifas = {
@@ -725,10 +731,9 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
     60: 9,
   };
 
-  const precioUnitario = tarifas[time] || 0;
-  // CORRECCIÓN: Multiplicamos el precio unitario por la cantidad
+  const precioUnitario = tarifas[tiempoFinal] || 0;
   const totalUSD = precioUnitario * cantidad;
-
+  // --- FIN CÓDIGO NUEVO ---
   // Monto para la URL (Debe tener punto decimal y sin puntos de mil)
   const montoParaUrl = (totalUSD * tasa).toFixed(2);
 
@@ -881,6 +886,7 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
     }
   }
 
+// --- INICIO CÓDIGO NUEVO ---
   const onFinalCheck = (data) => {
     if (
       metodo !== "efectivo" &&
@@ -891,8 +897,17 @@ function Paso4({ onSubmit, onBack, defaultValues, tasa, isSubmitting }) {
     }
     if (metodo === "efectivo" && faltaDinero) return;
 
-    onSubmit(data);
+    // Inyectamos los valores corregidos antes de enviarlos a la base de datos
+    const dataParaGuardar = {
+      ...data,
+      tiempo: String(tiempoFinal),
+      cantidad: cantidad,
+      monto_exacto_bs: parseFloat((totalUSD * tasa).toFixed(2))
+    };
+
+    onSubmit(dataParaGuardar);
   };
+  // --- FIN CÓDIGO NUEVO ---
 
   return (
     <form onSubmit={handleSubmit(onFinalCheck)} className="space-y-6">
