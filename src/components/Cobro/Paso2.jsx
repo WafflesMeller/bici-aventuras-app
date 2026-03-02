@@ -7,7 +7,7 @@ import { IdCard, Loader2, Search, User, ChevronLeft, ChevronRight } from "lucide
 import { FaWhatsapp } from "react-icons/fa";
 
 // IMPORTANTE: Ajusta la ruta dependiendo de dónde guardaste tu store
-import { useAlquilerStore } from "../../store/useAlquilerStore";
+import { useAlquilerStore } from "../../store/useAlquilerStore.js";
 
 // Mudamos el esquema de validación correspondiente a este paso
 const paso2Schema = z.object({

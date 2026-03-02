@@ -22,7 +22,7 @@ import bdvLogo from "/bdv-logo.webp";
 import qrBdv from "/qr-bdv.webp";
 
 // IMPORTANTE: Ajusta la ruta dependiendo de dónde guardaste tu store
-import { useAlquilerStore } from "../../store/useAlquilerStore";
+import { useAlquilerStore } from "../../store/useAlquilerStore.js";
 
 const paso4Schema = z.object({
   ult_4_ref: z.string().optional(),
