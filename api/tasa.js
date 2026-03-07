@@ -7,8 +7,7 @@ import https from "https";
 import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
-
-  // CORS (para Expo Web)
+  // CORS (para Expo Web o cualquier frontend)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -17,9 +16,10 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  try {
+  // 👇 Tasa de respaldo fija (Fallback)
+  const FALLBACK_USD = 433.17;
 
-    // 👇 ESTE era el agent que te faltaba
+  try {
     const agent = new https.Agent({
       rejectUnauthorized: false,
     });
@@ -70,15 +70,10 @@ export default async function handler(req, res) {
     const fechaValor =
       $(".date-display-single").first().text().trim() || null;
 
-    const any = Object.values(rates).some(
-      (v) => typeof v === "number"
-    );
-
-    if (!any) {
-      return res.status(404).json({
-        ok: false,
-        error: "No se pudieron leer las tasas desde el HTML del BCV",
-      });
+    // Si logró conectarse pero no pudo extraer la tasa USD, forzamos el error
+    // para que salte al catch y devuelva tu monto de respaldo.
+    if (!rates.USD) {
+      throw new Error("No se pudo leer la tasa USD desde el HTML del BCV");
     }
 
     res.setHeader(
@@ -86,29 +81,37 @@ export default async function handler(req, res) {
       "s-maxage=300, stale-while-revalidate=600"
     );
 
+    // Si todo salió bien, devolvemos la tasa real del BCV
     return res.status(200).json({
       ok: true,
       source: "bcv.org.ve",
-
+      fechaValor: fechaValor,
       current: {
         usd: rates.USD,
+        eur: rates.EUR,
+        cny: rates.CNY,
+        try: rates.TRY,
+        rub: rates.RUB
       },
-
-      price: rates.USD,
-
-      rates,
-
-      fecha_valor: fechaValor,
-      fetched_at: new Date().toISOString(),
     });
 
-  } catch (err) {
-    console.error("BCV ERROR:", err);
+  } catch (error) {
+    // 👇 AQUÍ ENTRA SI ALGO FALLA (Error de Host, Timeout, Caída de la web, etc.)
+    
+    res.setHeader(
+      "Cache-Control",
+      "s-maxage=300, stale-while-revalidate=600"
+    );
 
-    return res.status(500).json({
-      ok: false,
-      error: "Error consultando BCV",
-      detail: err.message,
+    // Devolvemos status 200 para que tu app no se rompa, pero con la tasa fija.
+    return res.status(200).json({
+      ok: true,
+      source: "fallback_manual",
+      fallback_used: true,
+      error_original: error.message, // Te dejo esto por si quieres ver en consola por qué falló
+      current: {
+        usd: FALLBACK_USD,
+      },
     });
   }
 }
