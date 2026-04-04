@@ -79,10 +79,10 @@ export default async function handler(req, res) {
         data.emisor = 'BDV';
 
         // Regex eliminando el ancla de inicio y el grupo del nombre
-        const regexFormato1 = /por Bs\. ?([\d\.,]+).*operaci[oó]n[:\s] (\d+)/i;
+        const regexFormato1 = /Bs\.?\s*([\d\.,]+).*operaci[oó]n[:\s]*(\d+)/i;
         
         // También actualizamos el formato 2 por si acaso
-        const regexFormato2 = /por Bs\. ?([\d\.,]+).*Ref[:\s]+(\d+)/i;
+        const regexFormato2 = /Bs\.?\s*([\d\.,]+).*Ref[:\s]*(\d+)/i;
         // Usamos la variable textoParaProcesar para evitar problemas con comillas u otros caracteres especiales
         const match1 = textoParaProcesar.match(regexFormato1);
         const match2 = textoParaProcesar.match(regexFormato2);
