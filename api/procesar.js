@@ -67,70 +67,72 @@ export default async function handler(req, res) {
     let procesado = false;
     let mensajeCliente = "";
     let esErrorFormato = false; // Nueva bandera
-    const tituloLimpio = TituloNotificacion.trim();
+    const tituloLimpio = TituloNotificacion.trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // Esto quita tildes (ó -> o)
+    const textoParaProcesar = TextoNotificacion.replace(/"/g,'').trim(); 
 
 // --- CASO A: PAGO MÓVIL BDV ---
-    if (tituloLimpio === 'PagomóvilBDV recibido') {
+    if (tituloLimpio.toLowerCase().includes('pagomovilbdv')) {
         data.tipo = 'PAGO_MOVIL';
         data.banco = 'BDV';
+        data.emisor = 'BDV';
 
-        // CORRECCIÓN AQUÍ: Cambiamos 'operación' por 'operaci[oó]n' para que acepte con o sin tilde
-        const regexFormato1 = /de (.+?) por Bs\. ?([\d\.,]+).*operaci[oó]n (\d+)/i;
+        // Regex eliminando el ancla de inicio y el grupo del nombre
+        const regexFormato1 = /por Bs\. ?([\d\.,]+).*operaci[oó]n (\d+)/i;
         
         // También actualizamos el formato 2 por si acaso
-        const regexFormato2 = /por Bs\. ?([\d\.,]+) del ([\d-]+).*Ref[:\s]+(\d+)/i;
-        
-        const match1 = TextoNotificacion.match(regexFormato1);
-        const match2 = TextoNotificacion.match(regexFormato2);
+        const regexFormato2 = /por Bs\. ?([\d\.,]+).*Ref[:\s]+(\d+)/i;
+        // Usamos la variable textoParaProcesar para evitar problemas con comillas u otros caracteres especiales
+        const match1 = textoParaProcesar.match(regexFormato1);
+        const match2 = textoParaProcesar.match(regexFormato2);
 
         if (match1) {
-            data.emisor = match1[1].trim();
-            data.monto = parseMonto(match1[2]);
-            data.referencia = match1[3];
+            data.monto = parseMonto(match1[1]);
+            data.referencia = match1[2];
             procesado = true;
-            mensajeCliente = "Pago Móvil (Nombre) procesado.";
+            mensajeCliente = "Pago Móvil BDV procesado.";
         } else if (match2) {
             data.monto = parseMonto(match2[1]);
-            data.emisor = match2[2].trim();
-            data.referencia = match2[3];
+            data.referencia = match2[2];
             procesado = true;
-            mensajeCliente = "Pago Móvil (Teléfono) procesado.";
+            mensajeCliente = "Pago Móvil BDV procesado.";
         }
     } 
     // --- CASO B: OTROS BANCOS ---
-    else if (tituloLimpio === 'Transferencia de otros bancos recibida') {
+    else if (tituloLimpio.toLowerCase().includes('transferencia de otros bancos')) {
         data.tipo = 'TRANSFERENCIA_INTERBANCARIA';
         data.banco = 'OTROS';
-        const regexOtros = /de (.+?) por Bs\. ?([\d\.,]+).*operación (\d+)/i;
-        const match = TextoNotificacion.match(regexOtros);
+        data.emisor = 'OTROS_BANCOS';
+        const regexOtros = /por Bs\. ?([\d\.,]+).*operaci[oó]n (\d+)/i;
+        const match = textoParaProcesar.match(regexOtros);
         if (match) {
-            data.emisor = match[1].trim();
-            data.monto = parseMonto(match[2]);
-            data.referencia = match[3];
+            data.monto = parseMonto(match[1]);
+            data.referencia = match[2];
             procesado = true;
             mensajeCliente = "Transferencia Otros Bancos procesada.";
         }
     } 
     // --- CASO C: TRANSFERENCIA BDV ---
-    else if (tituloLimpio === 'Transferencia BDV recibida') {
+    else if (tituloLimpio.toLowerCase().includes('transferencia bdv')) {
         data.tipo = 'TRANSFERENCIA_INTERNA';
         data.banco = 'BDV';
-        const regexFormato1 = /de (.+?) por Bs\. ?([\d\.,]+).*operación (\d+)/i;
-        const regexFormato2 = /monto de Bs\. ?([\d\.,]+).*Ref[:\s]+(\d+)/i;
-        const match1 = TextoNotificacion.match(regexFormato1);
-        const match2 = TextoNotificacion.match(regexFormato2);
+        data.emisor = 'BDV';
+        const regexFormato1 = /por Bs\. ?([\d\.,]+).*operaci[oó]n (\d+)/i;
+        const regexFormato2 = /Bs\. ?([\d\.,]+).*Ref[:\s]+(\d+)/i;
+        const match1 = textoParaProcesar.match(regexFormato1);
+        const match2 = textoParaProcesar.match(regexFormato2);
 
         if (match1) {
-            data.emisor = match1[1].trim();
-            data.monto = parseMonto(match1[2]);
-            data.referencia = match1[3];
+            data.monto = parseMonto(match1[1]);
+            data.referencia = match1[2];
             procesado = true;
-            mensajeCliente = "Transferencia BDV (Con Nombre) procesada.";
+            mensajeCliente = "Transferencia BDV procesada.";
         } else if (match2) {
             data.monto = parseMonto(match2[1]);
             data.referencia = match2[2];
             procesado = true;
-            mensajeCliente = "Transferencia BDV (Formato Simple) procesada.";
+            mensajeCliente = "Transferencia BDV procesada.";
         }
     }
 
