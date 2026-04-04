@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         data.emisor = 'BDV';
 
         // Regex eliminando el ancla de inicio y el grupo del nombre
-        const regexFormato1 = /por Bs\. ?([\d\.,]+).*operaci[oó]n (\d+)/i;
+        const regexFormato1 = /por Bs\. ?([\d\.,]+).*operaci[oó]n[:\s] (\d+)/i;
         
         // También actualizamos el formato 2 por si acaso
         const regexFormato2 = /por Bs\. ?([\d\.,]+).*Ref[:\s]+(\d+)/i;
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
         data.tipo = 'TRANSFERENCIA_INTERBANCARIA';
         data.banco = 'OTROS';
         data.emisor = 'OTROS_BANCOS';
-        const regexOtros = /por Bs\. ?([\d\.,]+).*operaci[oó]n (\d+)/i;
+        const regexOtros = /por Bs\. ?([\d\.,]+).*operaci[oó]n[:\s] (\d+)/i;
         const match = textoParaProcesar.match(regexOtros);
         if (match) {
             data.monto = parseMonto(match[1]);
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
         data.tipo = 'TRANSFERENCIA_INTERNA';
         data.banco = 'BDV';
         data.emisor = 'BDV';
-        const regexFormato1 = /por Bs\. ?([\d\.,]+).*operaci[oó]n (\d+)/i;
+        const regexFormato1 = /por Bs\. ?([\d\.,]+).*operaci[oó]n[:\s] (\d+)/i;
         const regexFormato2 = /Bs\. ?([\d\.,]+).*Ref[:\s]+(\d+)/i;
         const match1 = textoParaProcesar.match(regexFormato1);
         const match2 = textoParaProcesar.match(regexFormato2);
